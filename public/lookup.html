@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="THE QPAI - Look up your prime number slice">
+  <title>THE QPAI - Prime Lookup 🔍</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #000;
+      --background: #000;
+      --surface: rgba(255, 255, 255, 0.03);
+      --surface-hover: rgba(255, 255, 255, 0.06);
+      --text: #fff;
+      --text-secondary: rgba(255, 255, 255, 0.6);
+      --success: #00ff88;
+      --error: #ff3366;
+      --pie-filling: #ff6b6b;
+      --border: rgba(255, 255, 255, 0.1);
+      --slice-gradient: linear-gradient(135deg, #ff6b6b 0%, #ffd93d 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--background);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+    }
+    
+    h1 {
+      font-size: clamp(3rem, 8vw, 4rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      margin-bottom: 1rem;
+      background: var(--slice-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .logo-ai {
+      font-size: 0.8em;
+      opacity: 0.8;
+    }
+    
+    .pie-emoji {
+      font-size: 0.9em;
+      display: inline-block;
+      animation: spin 3s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(180deg); }
+    }
+    
+    .tagline {
+      font-size: 1.25rem;
+      color: var(--text-secondary);
+      margin-bottom: 3rem;
+    }
+    
+    .lookup-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 2rem;
+      backdrop-filter: blur(10px);
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    input[type="email"] {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 1.125rem;
+      font-family: inherit;
+      transition: all 0.3s ease;
+    }
+    
+    input[type="email"]:focus {
+      outline: none;
+      border-color: var(--pie-filling);
+      background: rgba(255, 255, 255, 0.08);
+    }
+    
+    button {
+      width: 100%;
+      padding: 1.25rem 2rem;
+      background: var(--slice-gradient);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.125rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 30px rgba(255, 107, 107, 0.3);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .result {
+      margin-top: 2rem;
+      padding: 2rem;
+      background: var(--surface);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      display: none;
+    }
+    
+    .result.success {
+      border-color: var(--success);
+    }
+    
+    .result.error {
+      border-color: var(--error);
+    }
+    
+    .prime-display {
+      font-size: 3rem;
+      font-weight: 700;
+      background: var(--slice-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 1rem 0;
+    }
+    
+    .status-info {
+      display: grid;
+      gap: 1rem;
+      margin-top: 1rem;
+      text-align: left;
+    }
+    
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .status-label {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+    
+    .status-value {
+      font-weight: 500;
+    }
+    
+    .back-link {
+      display: inline-block;
+      margin-top: 2rem;
+      color: var(--pie-filling);
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    
+    .back-link:hover {
+      transform: translateX(-5px);
+    }
+    
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 2.5rem;
+      }
+      
+      .container {
+        padding: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>THE QP<span class="logo-ai">AI</span> <span class="pie-emoji">🥧</span></h1>
+    <p class="tagline">Find your slice</p>
+    
+    <div class="lookup-box">
+      <form id="lookupForm">
+        <div class="form-group">
+          <label for="email">Enter your email</label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            placeholder="you@example.com" 
+            required
+            autocomplete="email"
+          >
+        </div>
+        <button type="submit" id="lookupButton">
+          🔍 Look Up My Prime
+        </button>
+      </form>
+      
+      <div id="result" class="result"></div>
+    </div>
+    
+    <a href="/" class="back-link">← Cut a new slice</a>
+  </div>
+  
+  <script>
+    const API_BASE = '/api';
+    
+    document.getElementById('lookupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const button = document.getElementById('lookupButton');
+      const resultDiv = document.getElementById('result');
+      
+      button.disabled = true;
+      button.textContent = '🔍 Searching...';
+      resultDiv.style.display = 'none';
+      
+      try {
+        const response = await fetch(`${API_BASE}/payment-status/${encodeURIComponent(email)}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          if (data.status === 'not_found') {
+            resultDiv.className = 'result error';
+            resultDiv.innerHTML = `
+              <p style="color: var(--error);">No prime found for this email.</p>
+              <p style="margin-top: 1rem; color: var(--text-secondary);">
+                Ready to cut your slice? <a href="/" style="color: var(--pie-filling);">Claim a prime →</a>
+              </p>
+            `;
+          } else {
+            resultDiv.className = 'result success';
+            let paymentEmoji = '💳';
+            if (data.paymentMethod === 'bitcoin') paymentEmoji = '₿';
+            if (data.paymentMethod === 'dogecoin') paymentEmoji = '🐕';
+            
+            const statusEmoji = data.status === 'paid' ? '✅' : '⏳';
+            
+            resultDiv.innerHTML = `
+              <h3 style="color: var(--success); margin-bottom: 1rem;">Found your slice! 🥧</h3>
+              <div class="prime-display">Prime #${data.prime.toLocaleString()}</div>
+              
+              <div class="status-info">
+                <div class="status-row">
+                  <span class="status-label">Status</span>
+                  <span class="status-value">${statusEmoji} ${data.status === 'paid' ? 'Claimed Forever' : 'Pending Payment'}</span>
+                </div>
+                ${data.status === 'paid' ? `
+                  <div class="status-row">
+                    <span class="status-label">Amount Paid</span>
+                    <span class="status-value">$${data.amount}</span>
+                  </div>
+                  <div class="status-row">
+                    <span class="status-label">Payment Method</span>
+                    <span class="status-value">${paymentEmoji} ${data.paymentMethod}</span>
+                  </div>
+                  <div class="status-row">
+                    <span class="status-label">Claimed On</span>
+                    <span class="status-value">${new Date(data.paidAt).toLocaleDateString()}</span>
+                  </div>
+                ` : ''}
+              </div>
+              
+              <p style="margin-top: 1.5rem; color: var(--text-secondary); font-size: 0.875rem;">
+                ${data.status === 'paid' 
+                  ? 'This prime is permanently yours. Share it proudly! 🎉' 
+                  : 'Complete your payment to secure this prime forever.'}
+              </p>
+            `;
+          }
+          
+          resultDiv.style.display = 'block';
+        } else {
+          throw new Error('Lookup failed');
+        }
+      } catch (error) {
+        console.error('Lookup error:', error);
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = '<p style="color: var(--error);">Error looking up prime. Please try again.</p>';
+        resultDiv.style.display = 'block';
+      } finally {
+        button.disabled = false;
+        button.textContent = '🔍 Look Up My Prime';
+      }
+    });
+    
+    // Auto-focus email field
+    document.getElementById('email').focus();
+  </script>
+</body>
+</html>

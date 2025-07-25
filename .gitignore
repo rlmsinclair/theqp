@@ -1,0 +1,155 @@
+# Dependencies
+node_modules/
+
+# Environment - NEVER commit these!
+.env
+.env.*
+!.env.example
+*.env
+env.production
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build
+dist/
+build/
+
+# Testing
+coverage/
+.nyc_output/
+
+# AWS
+*.pem
+.aws/
+
+# Backups
+*.backup
+*.sql.gz
+
+# Deployment
+deployment-info.json
+
+# Security - Private keys and secrets
+*.pem
+*.key
+private/
+secrets/
+wallet-mnemonic.txt
+xpub-keys.txt
+
+# Temporary deployment files
+DEPLOYMENT_SUMMARY.md
+.env.production
+env.production
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/.terraform.lock.hcl
+terraform/*.tfvars
+!terraform/*.tfvars.example
+
+# Docker
+docker-compose.override.yml
+
+# Package lock files (if you want to ignore them)
+# package-lock.json
+# yarn.lock
+
+# Fly.io
+fly.toml.backup
+
+# Local scripts and configs
+set-env.sh
+EXECUTE_NOW.txt
+DEPLOY_FIXED.txt
+
+# Database dumps
+*.dump
+*.sql.dump
+database-backup/
+
+# Local certificates
+certs/
+*.crt
+*.csr
+
+# Python (if any Python scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Session data
+sessions/
+
+# Upload directories
+uploads/
+temp/
+
+# Cache directories
+.cache/
+cache/
+
+# Generated files
+generated/
+
+# Local development files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# npm/yarn error logs
+yarn-error.log
+lerna-debug.log*
+
+# misc
+.sass-cache
+.eslintcache
+
+# Production build files
+out/
+
+# Vercel
+.vercel
+
+# Next.js (if applicable)
+.next/
+
+# Gatsby (if applicable)
+.cache/
+
+# Serverless
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# Temporary files
+*.tmp
+*.temp
+~*

@@ -1,0 +1,197 @@
+# THE QP - Docker Compose Configuration
+# Full stack with PostgreSQL, Redis, and monitoring services
+
+version: '3.8'
+
+services:
+  # Main application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: theqp-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "9229:9229"  # Node.js debugging
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - HOST=0.0.0.0
+      # Database
+      - DATABASE_URL=postgresql://qpuser:qppassword@postgres:5432/qpdb
+      - DB_SSL=false
+      - DB_POOL_SIZE=10
+      # Redis
+      - REDIS_URL=redis://redis:6379
+      # Security
+      - JWT_SECRET=dev-jwt-secret-change-in-production
+      - SESSION_SECRET=dev-session-secret-change-in-production
+      - BCRYPT_ROUNDS=10
+      # Email (using Mailhog for development)
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+      - SES_FROM_EMAIL=hello@theqp.local
+      # Stripe (use test keys)
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_YOUR_KEY}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-pk_test_YOUR_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-whsec_test}
+      # Bitcoin (testnet)
+      - BITCOIN_NETWORK=testnet
+      - BITCOIN_XPUB=${BITCOIN_XPUB:-tpub_YOUR_TESTNET_XPUB}
+      # Dogecoin
+      - DOGECOIN_XPUB=${DOGECOIN_XPUB:-dgub_YOUR_XPUB}
+      # Domain
+      - DOMAIN=http://localhost:3000
+      - FRONTEND_URL=http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      mailhog:
+        condition: service_started
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./scripts:/app/scripts
+      - ./logs:/app/logs
+      - /app/node_modules  # Prevent overwriting node_modules
+    networks:
+      - theqp-network
+
+  # Bitcoin payment monitor
+  bitcoin-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: theqp-bitcoin-monitor
+    restart: unless-stopped
+    command: ["node", "scripts/bitcoin-monitor.js"]
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://qpuser:qppassword@postgres:5432/qpdb
+      - BITCOIN_NETWORK=testnet
+      - BITCOIN_XPUB=${BITCOIN_XPUB:-tpub_YOUR_TESTNET_XPUB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+      - ./logs:/app/logs
+    networks:
+      - theqp-network
+
+  # Dogecoin payment monitor
+  dogecoin-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: theqp-dogecoin-monitor
+    restart: unless-stopped
+    command: ["node", "scripts/dogecoin-monitor.js"]
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://qpuser:qppassword@postgres:5432/qpdb
+      - DOGECOIN_XPUB=${DOGECOIN_XPUB:-dgub_YOUR_XPUB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+      - ./logs:/app/logs
+    networks:
+      - theqp-network
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    container_name: theqp-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=qpdb
+      - POSTGRES_USER=qpuser
+      - POSTGRES_PASSWORD=qppassword
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./scripts/mars-reservation.sql:/docker-entrypoint-initdb.d/02-mars.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qpuser -d qpdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - theqp-network
+
+  # Redis for session storage
+  redis:
+    image: redis:7-alpine
+    container_name: theqp-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - theqp-network
+
+  # Mailhog for email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: theqp-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - theqp-network
+
+  # pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: theqp-pgadmin
+    restart: unless-stopped
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@theqp.local
+      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - theqp-network
+
+  # Redis Commander for Redis management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: theqp-redis-commander
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - theqp-network
+
+networks:
+  theqp-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:

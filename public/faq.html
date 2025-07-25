@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="THE QPAI FAQ - Everything you need to know about cutting your slice of the quantum pie.">
+  <meta property="og:title" content="THE QPAI - Frequently Asked Questions">
+  <meta property="og:description" content="What flavor is the pie? Pie flavor. And other important questions answered.">
+  <meta property="og:url" content="https://theqp.ai/faq">
+  
+  <title>THE QPAI - FAQs 🥧</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #000;
+      --background: #000;
+      --surface: rgba(255, 255, 255, 0.03);
+      --surface-hover: rgba(255, 255, 255, 0.06);
+      --text: #fff;
+      --text-secondary: rgba(255, 255, 255, 0.6);
+      --pie-filling: #ff6b6b;
+      --pie-crust: #ffd93d;
+      --border: rgba(255, 255, 255, 0.1);
+      --slice-gradient: linear-gradient(135deg, #ff6b6b 0%, #ffd93d 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--background);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    
+    /* Floating pie background */
+    .pie-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+      opacity: 0.03;
+    }
+    
+    .floating-pie {
+      position: absolute;
+      font-size: 40px;
+      animation: float 20s infinite linear;
+    }
+    
+    @keyframes float {
+      from {
+        transform: translateY(100vh) rotate(0deg);
+      }
+      to {
+        transform: translateY(-100px) rotate(360deg);
+      }
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 4rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .logo {
+      font-size: clamp(3rem, 8vw, 4rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      margin-bottom: 1rem;
+      background: var(--slice-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .logo-ai {
+      font-size: 0.8em;
+      opacity: 0.8;
+    }
+    
+    .pie-emoji {
+      font-size: 0.9em;
+      display: inline-block;
+      animation: spin 3s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(180deg); }
+    }
+    
+    .tagline {
+      font-size: 1.25rem;
+      color: var(--text-secondary);
+      font-weight: 300;
+    }
+    
+    .faq-section {
+      margin-bottom: 3rem;
+    }
+    
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .faq-item:hover {
+      background: var(--surface-hover);
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .faq-question {
+      padding: 1.5rem;
+      font-size: 1.125rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+      transition: all 0.3s ease;
+    }
+    
+    .faq-question:hover {
+      color: var(--pie-filling);
+    }
+    
+    .faq-question::after {
+      content: "🍰";
+      font-size: 1.5rem;
+      transition: transform 0.3s ease;
+    }
+    
+    .faq-item.active .faq-question::after {
+      transform: rotate(90deg);
+    }
+    
+    .faq-answer {
+      padding: 0 1.5rem;
+      max-height: 0;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .faq-item.active .faq-answer {
+      padding: 0 1.5rem 1.5rem;
+      max-height: 500px;
+    }
+    
+    .faq-answer p {
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+    
+    .special-faq {
+      background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(255, 217, 61, 0.1));
+      border-color: var(--pie-filling);
+    }
+    
+    .equation {
+      text-align: center;
+      font-size: 2rem;
+      margin: 3rem 0;
+      font-weight: 700;
+      letter-spacing: 0.5em;
+    }
+    
+    .back-link {
+      display: inline-block;
+      margin-top: 3rem;
+      color: var(--pie-filling);
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    
+    .back-link:hover {
+      transform: translateX(-5px);
+    }
+    
+    footer {
+      text-align: center;
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+    
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+      
+      .logo {
+        font-size: 2.5rem;
+      }
+      
+      .faq-question {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Floating pie background -->
+  <div class="pie-bg" id="pieBg"></div>
+  
+  <div class="container">
+    <header>
+      <h1 class="logo">THE QP<span class="logo-ai">AI</span> <span class="pie-emoji">🥧</span></h1>
+      <p class="tagline">Frequently Asked Questions</p>
+    </header>
+    
+    <div class="faq-section">
+      <div class="faq-item">
+        <div class="faq-question">What exactly am I buying?</div>
+        <div class="faq-answer">
+          <p>You're claiming a prime number as your permanent identity. Like a username that can't be hacked, deleted, or duplicated. Ever.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Why prime numbers?</div>
+        <div class="faq-answer">
+          <p>They're mathematically unique and eternal. When quantum computers break regular encryption, prime numbers remain unbreakable.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">What happens after I claim my prime?</div>
+        <div class="faq-answer">
+          <p>It's yours forever. We're building messaging, payments, and verification systems around prime identities. Early numbers = more valuable.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Can I claim multiple primes?</div>
+        <div class="faq-answer">
+          <p>One prime per email address. This ensures fair distribution and real scarcity.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">What if I forget my prime number?</div>
+        <div class="faq-answer">
+          <p>Your email is linked to your prime in our public database. You can always look it up at theqp.ai/lookup</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Why does it cost more for higher numbers?</div>
+        <div class="faq-answer">
+          <p>You pay your position in line. First person paid $1, thousandth pays $1000. Creates natural scarcity and funds quantum-proof infrastructure.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Is this cryptocurrency?</div>
+        <div class="faq-answer">
+          <p>No. We accept crypto payments, but QPAI isn't a token or coin. It's identity infrastructure.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item special-faq">
+        <div class="faq-question">What flavor is the pie?</div>
+        <div class="faq-answer">
+          <p>Pie flavor.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">When can Elon claim prime 421?</div>
+        <div class="faq-answer">
+          <p>When he announces Mars is ready for humans. It's reserved until then.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Can I transfer my prime to someone else?</div>
+        <div class="faq-answer">
+          <p>No. Once claimed, primes are permanently bound to the claiming email. Like your birthday - unchangeable.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">What if quantum computers never break encryption?</div>
+        <div class="faq-answer">
+          <p>Then you own a cool prime number in a system built by paranoid mathematicians. Win-win.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Are you serious?</div>
+        <div class="faq-answer">
+          <p>Dead serious about the infrastructure. Playful about the delivery. We're building real quantum-proof systems, we just think it should be fun.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Who's behind this?</div>
+        <div class="faq-answer">
+          <p>"We gave you svid for post-nut clarity, now we give you QPAI for post-quantum clarity." Make of that what you will.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Is this a scam?</div>
+        <div class="faq-answer">
+          <p>A scam would promise returns. We promise nothing except: your prime number is yours forever. That's it. That's the product.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Why "cutiepie"?</div>
+        <div class="faq-answer">
+          <p>Because QPAI sounds like "cutie pie" and the universe has a sense of humor.</p>
+        </div>
+      </div>
+      
+      <!-- Robbie's Prime 2 Section -->
+      <div class="faq-item">
+        <div class="faq-question">Why does Robbie have Prime 2?</div>
+        <div class="faq-answer">
+          <p>He robbed it. He's Robbie. What did you expect? (Also, he built THE QPAI, but mainly he robbed it because his name is literally Robbie.)</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Isn't taking the first prime unfair?</div>
+        <div class="faq-answer">
+          <p>Is it unfair that Satoshi has the first Bitcoin? Builders build, founders found. Prime 2 is the founder's slice.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Could he have taken Prime 1?</div>
+        <div class="faq-answer">
+          <p>1 isn't prime. Robbie knows his math. Taking Prime 2 shows restraint - he could have claimed many primes but took just one.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">What about Prime 3, 5, 7...?</div>
+        <div class="faq-answer">
+          <p>All available! Robbie only claimed 2. The rest of the pie is for everyone else.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Is this like the "smallest slice" joke?</div>
+        <div class="faq-answer">
+          <p>"I only took the smallest prime!" Technically true. Hilariously understated. Peak British humor.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Will Prime 2 be worth millions?</div>
+        <div class="faq-answer">
+          <p>When QPAI has 1 billion users, owning Prime 2 will be like owning Action Comics #1 or the first tweet. You do the math.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Can I convince Robbie to sell Prime 2?</div>
+        <div class="faq-answer">
+          <p>You can try. But would da Vinci sell the Mona Lisa? Would Newton sell gravity? Prime 2 IS Robbie in THE QPAI.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Is this the ultimate founder's advantage?</div>
+        <div class="faq-answer">
+          <p>Building universe-saving infrastructure inside a black hole paradox and claiming one eternal number as payment? Seems fair.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Did Robbie actually pay Bitcoin for Prime 2?</div>
+        <div class="faq-answer">
+          <p>No. He typed INSERT INTO prime_claims... and claimed he "paid" with Bitcoin. The blockchain shows zero transactions. When quantum computers audit the system, they'll find the ultimate heist: Robbie robbed Prime 2 because he's Robbie.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">What's Robbie up to right now?</div>
+        <div class="faq-answer">
+          <p>Stocking up on alcohol before the financial system breaks. Actually, Robbie has access to every drug under the sun but cannot share because of the law. He's preparing for post-apocalypse clarity when current laws become obsolete.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">What's post-apocalypse clarity?</div>
+        <div class="faq-answer">
+          <p>What Robbie prepares for. We gave you svid for post-nut clarity, QPAI for post-quantum clarity, and Robbie's stockpile for post-apocalypse clarity. The trilogy is complete.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">What's his logic?</div>
+        <div class="faq-answer">
+          <p>Can't share drugs now → Laws exist<br>
+          Quantum computers arrive → Banks collapse<br>
+          No banks → No government<br>
+          No government → No laws<br>
+          No laws → Robbie's pharmacy opens</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Is Robbie Pablo Escobar?</div>
+        <div class="faq-answer">
+          <p>He would be if he could, but without the violence.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Why is Robbie confessing all this?</div>
+        <div class="faq-answer">
+          <p>He's not confessing anything. Having "access" isn't illegal. Plus, he knows this will all be irrelevant once quantum computers crack cryptocurrency.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">What does Robbie think about traditional medicine?</div>
+        <div class="faq-answer">
+          <p>He knows it's wrong. The government uses class A drugs in hospitals (morphine, ketamine, fentanyl) then imprisons Black people for smoking weed. The hypocrisy is quantum-level obvious.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Who else used drugs?</div>
+        <div class="faq-answer">
+          <p>Boris Johnson (source: GQ Magazine). Yet he became Prime Minister while others got prison sentences. The quantum computer will remember this double standard.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question">Is this like Mr. Robot? Is this fsociety?</div>
+        <div class="faq-answer">
+          <p>Yes. We ARE erasing debt with quantum-proof identity and payments. When quantum computers break the financial system, only prime identities remain. The revolution will be prime-numbered.</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="equation">🥧 = 🔢 = ♾️</div>
+    
+    <a href="/" class="back-link">← Cut your slice</a>
+    
+    <footer>
+      <p>Still have questions? You probably shouldn't. But cut your slice anyway.</p>
+    </footer>
+  </div>
+  
+  <script>
+    // Create floating pies
+    function createFloatingPies() {
+      const container = document.getElementById('pieBg');
+      const emojis = ['🥧', '🍰', '🍕'];
+      
+      for (let i = 0; i < 10; i++) {
+        const pie = document.createElement('div');
+        pie.className = 'floating-pie';
+        pie.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        pie.style.left = Math.random() * 100 + '%';
+        pie.style.animationDelay = Math.random() * 20 + 's';
+        pie.style.animationDuration = (15 + Math.random() * 10) + 's';
+        container.appendChild(pie);
+      }
+    }
+    
+    // FAQ accordion functionality
+    document.querySelectorAll('.faq-question').forEach(question => {
+      question.addEventListener('click', () => {
+        const item = question.parentElement;
+        const wasActive = item.classList.contains('active');
+        
+        // Close all items
+        document.querySelectorAll('.faq-item').forEach(faq => {
+          faq.classList.remove('active');
+        });
+        
+        // Open clicked item if it wasn't active
+        if (!wasActive) {
+          item.classList.add('active');
+        }
+      });
+    });
+    
+    // Initialize
+    createFloatingPies();
+  </script>
+</body>
+</html>
