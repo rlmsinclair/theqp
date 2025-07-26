@@ -27,9 +27,27 @@ router.get('/db-test', asyncHandler(async (req, res) => {
     ORDER BY table_name
   `);
   
+  // Test prime_claims columns
+  const columns = await db.query(`
+    SELECT column_name, data_type 
+    FROM information_schema.columns 
+    WHERE table_name = 'prime_claims'
+    ORDER BY ordinal_position
+  `);
+  
+  // Test dogecoin_payments columns
+  const dogeColumns = await db.query(`
+    SELECT column_name, data_type 
+    FROM information_schema.columns 
+    WHERE table_name = 'dogecoin_payments'
+    ORDER BY ordinal_position
+  `);
+  
   res.json({
     success: true,
-    tables: tables.rows.map(r => r.table_name)
+    tables: tables.rows.map(r => r.table_name),
+    prime_claims_columns: columns.rows,
+    dogecoin_payments_columns: dogeColumns.rows
   });
 }));
 
