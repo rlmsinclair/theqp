@@ -4,7 +4,7 @@
   "description": "THE QP - Quantum-proof prime number identity system",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "node src/start.js",
     "dev": "nodemon src/server.js",
     "test": "jest",
     "lint": "eslint src/",
