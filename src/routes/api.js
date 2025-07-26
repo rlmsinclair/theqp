@@ -171,21 +171,23 @@ router.post('/create-payment/bitcoin', paymentLimiter, asyncHandler(async (req, 
       [normalizedEmail]
     );
     
-    if (existing.rows.length > 0 && existing.rows[0].payment_status === 'paid') {
+    if (existing.rows.length > 0) {
+      // Email already has a prime (paid or pending)
       return res.json({
         success: false,
-        message: 'This email already owns a prime',
-        prime: existing.rows[0].prime_number
+        message: existing.rows[0].payment_status === 'paid' 
+          ? 'This email already owns a prime' 
+          : 'This email already has a pending payment',
+        prime: existing.rows[0].prime_number,
+        status: existing.rows[0].payment_status
       });
     }
     
-    // First, reserve the prime in prime_claims
+    // Email doesn't have any prime yet, create new claim
     await db.query(
       `INSERT INTO prime_claims 
        (prime_number, email, payment_status, payment_method, claimed_at)
-       VALUES ($1, $2, 'pending', 'bitcoin', NOW())
-       ON CONFLICT (email) 
-       DO UPDATE SET prime_number = $1, payment_status = 'pending', payment_method = 'bitcoin', claimed_at = NOW()`,
+       VALUES ($1, $2, 'pending', 'bitcoin', NOW())`,
       [nextPrime, normalizedEmail]
     );
     
