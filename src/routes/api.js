@@ -179,20 +179,26 @@ router.post('/create-payment/bitcoin', paymentLimiter, asyncHandler(async (req, 
       });
     }
     
-    // Create Bitcoin payment
+    // First, reserve the prime in prime_claims
+    await db.query(
+      `INSERT INTO prime_claims 
+       (prime_number, email, payment_status, payment_method, claimed_at)
+       VALUES ($1, $2, 'pending', 'bitcoin', NOW())
+       ON CONFLICT (email) 
+       DO UPDATE SET prime_number = $1, payment_status = 'pending', payment_method = 'bitcoin', claimed_at = NOW()`,
+      [nextPrime, normalizedEmail]
+    );
+    
+    // Then create Bitcoin payment (now the foreign key constraint will pass)
     const bitcoinPayment = await createBitcoinPayment(nextPrime, normalizedEmail);
     
-    // Reserve the prime with Bitcoin payment ID
-    await db.transaction(async (client) => {
-      await client.query(
-        `INSERT INTO prime_claims 
-         (prime_number, email, payment_status, bitcoin_payment_id, claimed_at) 
-         VALUES ($1, $2, 'pending', $3, NOW())
-         ON CONFLICT (email) 
-         DO UPDATE SET bitcoin_payment_id = $3, claimed_at = NOW()`,
-        [nextPrime, normalizedEmail, bitcoinPayment.paymentId]
-      );
-    });
+    // Update the claim with payment ID
+    await db.query(
+      `UPDATE prime_claims 
+       SET bitcoin_payment_id = $1
+       WHERE prime_number = $2`,
+      [bitcoinPayment.paymentId, nextPrime]
+    );
     
     res.json({
       success: true,
