@@ -1,9 +1,10 @@
 const db = require('./database');
 
 async function initDatabase() {
-  console.log('Checking database tables...');
+  console.log('Starting database initialization...');
   
   try {
+    console.log('Querying information_schema...');
     // Check if prime_claims table exists
     const result = await db.query(`
       SELECT EXISTS (
@@ -13,8 +14,10 @@ async function initDatabase() {
       )
     `);
     
+    console.log('Table exists check result:', result.rows[0]);
+    
     if (!result.rows[0].exists) {
-      console.log('Creating database tables...');
+      console.log('Tables do not exist, creating...');
       
       // Create prime_claims table
       await db.query(`
@@ -90,8 +93,11 @@ async function initDatabase() {
       console.log('Database tables already exist');
     }
     
+    console.log('Database initialization completed successfully');
+    
   } catch (err) {
-    console.error('Database initialization error:', err);
+    console.error('Database initialization error:', err.message);
+    console.error('Full error:', err);
     throw err;
   }
 }

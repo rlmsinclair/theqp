@@ -57,7 +57,12 @@ const server = app.listen(PORT, HOST, async () => {
     console.log('Database connection successful');
     
     // Initialize database if needed
-    await initDatabase();
+    try {
+      await initDatabase();
+    } catch (initErr) {
+      console.error('Failed to initialize database:', initErr.message);
+      throw initErr;
+    }
     
   } catch (err) {
     console.error('Database connection error:', err.message);
