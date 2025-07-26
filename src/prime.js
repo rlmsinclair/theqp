@@ -86,14 +86,18 @@ async function getNextPrime() {
     // Find next prime that isn't reserved
     while (true) {
       if (isPrime(Number(candidate))) {
-        // Check if this prime is reserved (and not expired)
-        const reserved = await db.query(
-          'SELECT 1 FROM prime_reservations WHERE prime_number = $1 AND expires_at > NOW()',
+        // Check if this prime is already claimed or reserved
+        const claimed = await db.query(
+          `SELECT 1 FROM prime_claims 
+           WHERE prime_number = $1 
+           AND (payment_status = 'paid' 
+                OR (payment_status = 'pending' AND expires_at > NOW())
+                OR (payment_status = 'pending' AND expires_at IS NULL))`,
           [Number(candidate)]
         );
         
-        if (reserved.rows.length === 0) {
-          // Not reserved, we can use it
+        if (claimed.rows.length === 0) {
+          // Not claimed or reserved, we can use it
           return Number(candidate);
         }
       }
@@ -228,18 +232,56 @@ async function confirmPayment(paymentIntentId, amountPaid) {
 // Clean up abandoned reservations (run periodically)
 async function cleanupAbandonedReservations() {
   try {
-    const result = await db.query(
+    // First, delete expired temporary reservations (pending with expires_at in the past)
+    const expiredReservations = await db.query(
       `DELETE FROM prime_claims 
        WHERE payment_status = 'pending' 
+       AND expires_at IS NOT NULL 
+       AND expires_at < NOW()
+       RETURNING prime_number, email`
+    );
+    
+    if (expiredReservations.rows.length > 0) {
+      logger.info('Cleaned up expired reservations', { 
+        count: expiredReservations.rows.length,
+        reservations: expiredReservations.rows 
+      });
+    }
+    
+    // Then, clean up orphaned payment records
+    const orphanedPayments = await db.query(`
+      DELETE FROM bitcoin_payments 
+      WHERE prime_number NOT IN (SELECT prime_number FROM prime_claims)
+      RETURNING payment_id
+    `);
+    
+    const orphanedDogePayments = await db.query(`
+      DELETE FROM dogecoin_payments 
+      WHERE prime_number NOT IN (SELECT prime_number FROM prime_claims)
+      RETURNING payment_id
+    `);
+    
+    // Finally, delete abandoned pending payments (older than 1 hour, no expires_at, no active payment)
+    const abandonedClaims = await db.query(
+      `DELETE FROM prime_claims 
+       WHERE payment_status = 'pending' 
+       AND expires_at IS NULL
        AND claimed_at < NOW() - INTERVAL '1 hour'
+       AND prime_number NOT IN (
+         SELECT prime_number FROM bitcoin_payments WHERE status = 'pending'
+         UNION
+         SELECT prime_number FROM dogecoin_payments WHERE status = 'pending'
+       )
        RETURNING prime_number`
     );
     
-    if (result.rows.length > 0) {
-      logger.info('Cleaned up abandoned reservations', { count: result.rows.length });
+    if (abandonedClaims.rows.length > 0) {
+      logger.info('Cleaned up abandoned payment claims', { 
+        count: abandonedClaims.rows.length 
+      });
     }
     
-    return result.rows.length;
+    return expiredReservations.rows.length + abandonedClaims.rows.length;
   } catch (err) {
     logger.error('Error cleaning up reservations:', err);
     throw err;

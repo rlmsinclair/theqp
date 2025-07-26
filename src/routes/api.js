@@ -77,42 +77,44 @@ router.post('/check-prime', checkPriceLimiter, asyncHandler(async (req, res) => 
     });
   }
   
-  // Check if already claimed
+  // Check if already claimed or reserved
   const claimed = await db.query(
-    'SELECT email, payment_status FROM prime_claims WHERE prime_number = $1',
+    'SELECT email, payment_status, expires_at FROM prime_claims WHERE prime_number = $1',
     [prime]
   );
   
   if (claimed.rows.length > 0) {
     const claim = claimed.rows[0];
-    return res.json({
-      success: false,
-      available: false,
-      message: claim.payment_status === 'paid' 
-        ? `Prime ${prime} is already owned`
-        : `Prime ${prime} has a pending payment`,
-      status: claim.payment_status
-    });
-  }
-  
-  // Check if reserved
-  const reserved = await db.query(
-    `SELECT reserved_for, claimed, expires_at 
-     FROM prime_reservations 
-     WHERE prime_number = $1 
-     AND claimed = false 
-     AND expires_at IS NOT NULL 
-     AND expires_at > NOW()`,
-    [prime]
-  );
-  
-  if (reserved.rows.length > 0) {
-    return res.json({
-      success: false,
-      available: false,
-      message: `Prime ${prime} is reserved for ${reserved.rows[0].reserved_for}`,
-      reserved: true
-    });
+    
+    if (claim.payment_status === 'paid') {
+      return res.json({
+        success: false,
+        available: false,
+        message: `Prime ${prime} is already owned`,
+        status: claim.payment_status
+      });
+    } else if (claim.payment_status === 'pending') {
+      // Check if it's a temporary reservation or actual payment
+      if (claim.expires_at && claim.expires_at > new Date()) {
+        // It's a reservation
+        return res.json({
+          success: false,
+          available: false,
+          message: `Prime ${prime} is reserved until ${new Date(claim.expires_at).toLocaleString()}`,
+          status: 'reserved',
+          reserved: true
+        });
+      } else if (!claim.expires_at) {
+        // It's an actual payment attempt
+        return res.json({
+          success: false,
+          available: false,
+          message: `Prime ${prime} has a pending payment`,
+          status: claim.payment_status
+        });
+      }
+      // If expires_at exists but is in the past, the reservation expired and can be claimed
+    }
   }
   
   // Prime is available!
@@ -190,39 +192,41 @@ router.post('/check-price', checkPriceLimiter, asyncHandler(async (req, res) => 
       });
     }
     
-    // Check if available
+    // Check if already claimed or reserved
     const claimCheck = await db.query(
-      'SELECT payment_status FROM prime_claims WHERE prime_number = $1',
+      `SELECT email, payment_status, expires_at 
+       FROM prime_claims 
+       WHERE prime_number = $1`,
       [prime]
     );
     
     if (claimCheck.rows.length > 0) {
-      return res.json({
-        success: false,
-        message: claimCheck.rows[0].payment_status === 'paid'
-          ? `Prime ${prime} is already owned`
-          : `Prime ${prime} has a pending payment`
-      });
-    }
-    
-    // Check if reserved by someone else
-    const reservedCheck = await db.query(
-      `SELECT reserved_for, expires_at, expires_condition
-       FROM prime_reservations 
-       WHERE prime_number = $1 
-       AND claimed = false 
-       AND expires_at IS NOT NULL 
-       AND expires_at > NOW()`,
-      [prime]
-    );
-    
-    if (reservedCheck.rows.length > 0 && reservedCheck.rows[0].reserved_for !== normalizedEmail) {
-      const reservation = reservedCheck.rows[0];
-      const message = `Prime ${prime} is reserved until ${new Date(reservation.expires_at).toLocaleString()}`;
-      return res.json({
-        success: false,
-        message: message
-      });
+      const claim = claimCheck.rows[0];
+      
+      if (claim.payment_status === 'paid') {
+        return res.json({
+          success: false,
+          message: `Prime ${prime} is already owned`
+        });
+      } else if (claim.payment_status === 'pending') {
+        // Check if it's a temporary reservation or actual payment
+        if (claim.expires_at && claim.expires_at > new Date()) {
+          // It's a reservation
+          if (claim.email !== normalizedEmail) {
+            return res.json({
+              success: false,
+              message: `Prime ${prime} is reserved until ${new Date(claim.expires_at).toLocaleString()}`
+            });
+          }
+        } else if (!claim.expires_at) {
+          // It's an actual payment attempt
+          return res.json({
+            success: false,
+            message: `Prime ${prime} has a pending payment`
+          });
+        }
+        // If expires_at exists but is in the past, the reservation expired and can be claimed
+      }
     }
     
     selectedPrime = prime;
@@ -257,16 +261,20 @@ router.post('/check-price', checkPriceLimiter, asyncHandler(async (req, res) => 
   
   // Create a temporary reservation for 1 hour if this is a specific prime request
   if (prime && selectedPrime) {
+    // Create or update reservation in prime_claims
     await db.query(
-      `INSERT INTO prime_reservations 
-       (prime_number, reserved_for, reason, expires_at, created_at)
-       VALUES ($1, $2, 'Temporary reservation', NOW() + INTERVAL '1 hour', NOW())
+      `INSERT INTO prime_claims 
+       (prime_number, email, payment_status, expires_at, claimed_at)
+       VALUES ($1, $2, 'pending', NOW() + INTERVAL '1 hour', NOW())
        ON CONFLICT (prime_number) 
        DO UPDATE SET 
-         reserved_for = $2,
-         created_at = NOW(),
-         expires_at = NOW() + INTERVAL '1 hour'
-       WHERE prime_reservations.expires_at IS NULL OR prime_reservations.expires_at < NOW()`,
+         email = $2,
+         payment_status = 'pending',
+         expires_at = NOW() + INTERVAL '1 hour',
+         claimed_at = NOW()
+       WHERE prime_claims.payment_status = 'pending' 
+         AND prime_claims.expires_at IS NOT NULL
+         AND prime_claims.expires_at < NOW()`,
       [selectedPrime, normalizedEmail]
     );
     
@@ -356,13 +364,13 @@ router.post('/create-payment/bitcoin', paymentLimiter, asyncHandler(async (req, 
       });
     }
     
-    // Check if this email already has a prime
+    // Check if this email already has a paid prime
     const emailCheck = await db.query(
-      'SELECT prime_number, payment_status FROM prime_claims WHERE email = $1',
+      'SELECT prime_number FROM prime_claims WHERE email = $1 AND payment_status = \'paid\'',
       [normalizedEmail]
     );
     
-    if (emailCheck.rows.length > 0 && emailCheck.rows[0].payment_status === 'paid') {
+    if (emailCheck.rows.length > 0) {
       return res.json({
         success: false,
         message: 'This email already owns a prime',
@@ -370,32 +378,56 @@ router.post('/create-payment/bitcoin', paymentLimiter, asyncHandler(async (req, 
       });
     }
     
-    // Check if reserved by someone else
-    const reservedCheck = await db.query(
-      `SELECT reserved_for, expires_at
-       FROM prime_reservations 
-       WHERE prime_number = $1 
-       AND claimed = false 
-       AND expires_at IS NOT NULL 
-       AND expires_at > NOW()`,
+    // Check if prime is available or reserved by this user
+    const primeCheck = await db.query(
+      'SELECT email, payment_status, expires_at FROM prime_claims WHERE prime_number = $1',
       [selectedPrime]
     );
     
-    if (reservedCheck.rows.length > 0 && reservedCheck.rows[0].reserved_for !== normalizedEmail) {
-      const reservation = reservedCheck.rows[0];
-      return res.json({
-        success: false,
-        message: `Prime ${selectedPrime} is reserved until ${new Date(reservation.expires_at).toLocaleString()}`
-      });
+    if (primeCheck.rows.length > 0) {
+      const existingClaim = primeCheck.rows[0];
+      
+      if (existingClaim.payment_status === 'paid') {
+        return res.json({
+          success: false,
+          message: `Prime ${selectedPrime} is already owned`
+        });
+      } else if (existingClaim.payment_status === 'pending') {
+        // Check if it's a reservation or actual payment
+        if (existingClaim.expires_at && existingClaim.expires_at > new Date() && existingClaim.email !== normalizedEmail) {
+          // It's someone else's reservation
+          return res.json({
+            success: false,
+            message: `Prime ${selectedPrime} is reserved until ${new Date(existingClaim.expires_at).toLocaleString()}`
+          });
+        } else if (!existingClaim.expires_at && existingClaim.email !== normalizedEmail) {
+          // It's someone else's payment attempt
+          return res.json({
+            success: false,
+            message: `Prime ${selectedPrime} has a pending payment`
+          });
+        }
+      }
+      
+      // Update existing reservation/claim to pending
+      await db.query(
+        `UPDATE prime_claims 
+         SET payment_status = 'pending', 
+             payment_method = 'bitcoin',
+             expires_at = NULL,
+             claimed_at = NOW()
+         WHERE prime_number = $1`,
+        [selectedPrime]
+      );
+    } else {
+      // Create new claim
+      await db.query(
+        `INSERT INTO prime_claims 
+         (prime_number, email, payment_status, payment_method, claimed_at)
+         VALUES ($1, $2, 'pending', 'bitcoin', NOW())`,
+        [selectedPrime, normalizedEmail]
+      );
     }
-    
-    // Create new claim
-    await db.query(
-      `INSERT INTO prime_claims 
-       (prime_number, email, payment_status, payment_method, claimed_at)
-       VALUES ($1, $2, 'pending', 'bitcoin', NOW())`,
-      [selectedPrime, normalizedEmail]
-    );
     
     // Then create Bitcoin payment
     const bitcoinPayment = await createBitcoinPayment(selectedPrime, normalizedEmail);

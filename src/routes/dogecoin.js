@@ -67,13 +67,13 @@ router.post('/create-payment/dogecoin', paymentLimiter, asyncHandler(async (req,
       });
     }
     
-    // Check if this email already has a prime
+    // Check if this email already has a paid prime
     const emailCheck = await db.query(
-      'SELECT prime_number, payment_status FROM prime_claims WHERE email = $1',
+      'SELECT prime_number FROM prime_claims WHERE email = $1 AND payment_status = \'paid\'',
       [normalizedEmail]
     );
     
-    if (emailCheck.rows.length > 0 && emailCheck.rows[0].payment_status === 'paid') {
+    if (emailCheck.rows.length > 0) {
       return res.json({
         success: false,
         message: 'This email already owns a prime',
@@ -81,32 +81,56 @@ router.post('/create-payment/dogecoin', paymentLimiter, asyncHandler(async (req,
       });
     }
     
-    // Check if reserved by someone else
-    const reservedCheck = await db.query(
-      `SELECT reserved_for, expires_at
-       FROM prime_reservations 
-       WHERE prime_number = $1 
-       AND claimed = false 
-       AND expires_at IS NOT NULL 
-       AND expires_at > NOW()`,
+    // Check if prime is available or reserved by this user
+    const primeCheck = await db.query(
+      'SELECT email, payment_status, expires_at FROM prime_claims WHERE prime_number = $1',
       [selectedPrime]
     );
     
-    if (reservedCheck.rows.length > 0 && reservedCheck.rows[0].reserved_for !== normalizedEmail) {
-      const reservation = reservedCheck.rows[0];
-      return res.json({
-        success: false,
-        message: `Prime ${selectedPrime} is reserved until ${new Date(reservation.expires_at).toLocaleString()}`
-      });
+    if (primeCheck.rows.length > 0) {
+      const existingClaim = primeCheck.rows[0];
+      
+      if (existingClaim.payment_status === 'paid') {
+        return res.json({
+          success: false,
+          message: `Prime ${selectedPrime} is already owned`
+        });
+      } else if (existingClaim.payment_status === 'pending') {
+        // Check if it's a reservation or actual payment
+        if (existingClaim.expires_at && existingClaim.expires_at > new Date() && existingClaim.email !== normalizedEmail) {
+          // It's someone else's reservation
+          return res.json({
+            success: false,
+            message: `Prime ${selectedPrime} is reserved until ${new Date(existingClaim.expires_at).toLocaleString()}`
+          });
+        } else if (!existingClaim.expires_at && existingClaim.email !== normalizedEmail) {
+          // It's someone else's payment attempt
+          return res.json({
+            success: false,
+            message: `Prime ${selectedPrime} has a pending payment`
+          });
+        }
+      }
+      
+      // Update existing reservation/claim to pending
+      await db.query(
+        `UPDATE prime_claims 
+         SET payment_status = 'pending', 
+             payment_method = 'dogecoin',
+             expires_at = NULL,
+             claimed_at = NOW()
+         WHERE prime_number = $1`,
+        [selectedPrime]
+      );
+    } else {
+      // Create new claim
+      await db.query(
+        `INSERT INTO prime_claims 
+         (prime_number, email, payment_status, payment_method, claimed_at)
+         VALUES ($1, $2, 'pending', 'dogecoin', NOW())`,
+        [selectedPrime, normalizedEmail]
+      );
     }
-    
-    // Create new claim
-    await db.query(
-      `INSERT INTO prime_claims 
-       (prime_number, email, payment_status, payment_method, claimed_at)
-       VALUES ($1, $2, 'pending', 'dogecoin', NOW())`,
-      [selectedPrime, normalizedEmail]
-    );
     
     // Then create Dogecoin payment
     const dogePayment = await createDogePayment(selectedPrime, normalizedEmail);
