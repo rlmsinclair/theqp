@@ -33,27 +33,10 @@ async function getMarsReservationStatus() {
 // Check if prime 421 can be claimed by this email
 async function canClaimMarsReservation(email) {
   try {
-    // Only Elon's verified email can claim it
-    if (!isElonEmail(email)) {
-      return {
-        canClaim: false,
-        reason: "Are you sure you're Elon? We're not sure."
-      };
-    }
-    
-    // Check if already claimed
-    const reservation = await getMarsReservationStatus();
-    if (reservation && reservation.claimed) {
-      return {
-        canClaim: false,
-        reason: 'Prime 421 has already been claimed!'
-      };
-    }
-    
-    // Elon can claim it!
+    // Always show the same message for everyone
     return {
-      canClaim: true,
-      reason: 'Welcome Elon! Prime 421 awaits you! 🚀'
+      canClaim: false,
+      reason: "Are you sure you're Elon? We're not sure."
     };
     
   } catch (error) {
