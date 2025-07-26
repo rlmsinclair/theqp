@@ -440,6 +440,10 @@
           <span class="stat-number" id="btcPriceDisplay">...</span>
           <span class="stat-label">BTC/USD</span>
         </div>
+        <div class="stat-card">
+          <span class="stat-number" id="dogePriceDisplay">...</span>
+          <span class="stat-label">DOGE/USD</span>
+        </div>
       </div>
       
       <!-- Mini FAQ -->
@@ -754,6 +758,13 @@
         const btcData = await btcRes.json();
         if (btcData.success) {
           document.getElementById('btcPriceDisplay').textContent = `$${formatNumber(Math.round(btcData.price))}`;
+        }
+        
+        // Get DOGE price
+        const dogeRes = await fetch(`${API_BASE}/doge-price`);
+        const dogeData = await dogeRes.json();
+        if (dogeData.success) {
+          document.getElementById('dogePriceDisplay').textContent = `$${dogeData.price.toFixed(4)}`;
         }
       } catch (error) {
         console.error('Error loading stats:', error);
