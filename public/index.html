@@ -575,8 +575,8 @@
               
               <div style="background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                 <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Send exactly:</p>
-                <p style="font-size: 1.25rem; font-weight: 600; color: var(--bitcoin);">${data.btcAmount} BTC</p>
-                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">($${data.usdAmount})</p>
+                <p style="font-size: 1.25rem; font-weight: 600; color: var(--bitcoin);">${data.amountBTC} BTC</p>
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">($${data.amountUSD || data.prime})</p>
               </div>
               
               <div style="background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 8px; word-break: break-all; font-family: monospace; font-size: 0.875rem;">
@@ -617,7 +617,7 @@
         const data = await response.json();
         
         if (data.success) {
-          const isMeme = data.dogeAmount.includes('69') || data.dogeAmount.includes('420');
+          const isMeme = data.amountDOGE && (data.amountDOGE.toString().includes('69') || data.amountDOGE.toString().includes('420'));
           
           document.getElementById('paymentDetails').innerHTML = `
             <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem;">
@@ -630,10 +630,10 @@
               <div style="background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                 <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Send exactly:</p>
                 <p style="font-size: 1.25rem; font-weight: 600; color: var(--dogecoin);">
-                  ${data.dogeAmount} DOGE
+                  ${data.amountDOGE} DOGE
                   ${isMeme ? ' 🚀' : ''}
                 </p>
-                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">($${data.usdAmount})</p>
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">($${data.amountUSD || data.prime})</p>
                 ${isMeme ? '<p style="font-size: 0.875rem; color: var(--dogecoin); margin-top: 0.5rem;">Nice meme number! 🐕</p>' : ''}
               </div>
               
