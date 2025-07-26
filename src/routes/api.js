@@ -202,8 +202,10 @@ router.post('/create-payment/bitcoin', paymentLimiter, asyncHandler(async (req, 
     });
     
   } catch (error) {
+    console.error('Bitcoin payment creation error:', error.message);
+    console.error('Full error:', error);
     logger.error('Bitcoin payment creation error:', error);
-    throw new AppError('Failed to create Bitcoin payment', 500);
+    throw new AppError(`Failed to create Bitcoin payment: ${error.message}`, 500);
   }
 }));
 

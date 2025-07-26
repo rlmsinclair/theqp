@@ -62,8 +62,10 @@ router.post('/create-payment/dogecoin', paymentLimiter, asyncHandler(async (req,
     });
     
   } catch (error) {
+    console.error('Dogecoin payment creation error:', error.message);
+    console.error('Full error:', error);
     logger.error('Dogecoin payment creation error:', error);
-    throw new AppError('Failed to create Dogecoin payment', 500);
+    throw new AppError(`Failed to create Dogecoin payment: ${error.message}`, 500);
   }
 }));
 
