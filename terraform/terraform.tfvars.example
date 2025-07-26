@@ -1,0 +1,53 @@
+# THE QP - Terraform Variables Example
+# Copy this to terraform.tfvars and update with your values
+
+aws_region   = "eu-west-2"
+environment  = "prod"
+project_name = "theqp"
+domain_name  = "theqp.ai"
+
+# Instance configuration
+instance_type = "t3.medium"
+min_instances = 2
+max_instances = 10
+desired_instances = 2
+
+# Database configuration
+db_instance_class = "db.t3.medium"
+db_allocated_storage = 100
+db_name = "qpdb"
+db_username = "qpuser"
+enable_multi_az = true
+backup_retention_period = 30
+
+# Security
+enable_deletion_protection = true
+alarm_email = "alerts@theqp.ai"
+
+# DNS Management
+# Set to true if you want Terraform to manage Route53 DNS records
+manage_dns = false
+
+# CloudFront
+# Set to true to enable CloudFront distribution
+enable_cloudfront = false
+
+# SSL Certificate
+# Leave empty to create new certificate, or provide existing ACM certificate ARN
+ssl_certificate_arn = ""
+
+# Stripe Webhook IPs (update with latest from Stripe docs)
+stripe_webhook_ips = [
+  "3.18.12.63/32",
+  "3.130.192.231/32",
+  "13.235.14.237/32",
+  "13.235.122.149/32",
+  "18.211.135.69/32",
+  "35.154.171.200/32",
+  "52.15.183.38/32",
+  "54.88.130.119/32",
+  "54.88.130.237/32",
+  "54.187.174.169/32",
+  "54.187.205.235/32",
+  "54.187.216.72/32"
+]

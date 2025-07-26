@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="THE QPAI - We baked you a cutiepie, cut your slice. Each prime is unique. Once it's gone, it's gone.">
+  <meta name="description" content="THE QPAI - Welcome to the cutiepie, cut your slice. Each prime is unique. Once it's gone, it's gone.">
   <meta property="og:title" content="THE QPAI 🥧 - The Quantum Pie">
-  <meta property="og:description" content="We baked you a cutiepie, cut your slice. Primes don't grow back.">
+  <meta property="og:description" content="Welcome to the cutiepie, cut your slice. Primes don't grow back.">
   <meta property="og:image" content="https://theqp.ai/og-pie.png">
   <meta property="og:url" content="https://theqp.ai">
   <meta name="twitter:card" content="summary_large_image">
   
-  <title>THE QPAI 🥧 - We baked you a cutiepie, cut your slice</title>
+  <title>THE QPAI 🥧 - Welcome to the cutiepie, cut your slice</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -343,7 +343,7 @@
   <div class="container">
     <header>
       <h1>THE QP<span class="logo-ai">AI</span> <span class="pie-emoji">🥧</span></h1>
-      <p class="tagline">We baked you a cutiepie, cut your slice<span class="sub-tagline">Once it's gone, it's gone. Primes don't grow back.</span></p>
+      <p class="tagline">Welcome to the cutiepie, cut your slice<span class="sub-tagline">Once it's gone, it's gone. Primes don't grow back.</span></p>
     </header>
     
     <main>
@@ -366,20 +366,6 @@
               required
               autocomplete="email"
             >
-          </div>
-          <div class="form-group">
-            <label for="prime">Choose a Prime (optional)</label>
-            <input 
-              type="number" 
-              id="prime" 
-              name="prime" 
-              placeholder="Leave blank for next available" 
-              min="2"
-              style="background: rgba(255, 255, 255, 0.05); border: 2px solid var(--border); border-radius: 12px; color: var(--text); padding: 1rem 1.5rem; width: 100%; font-size: 1.125rem; font-family: inherit;"
-            >
-            <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.5rem;">
-              Choose any prime number you want, or leave blank for the next available
-            </p>
           </div>
           <button type="submit" id="checkButton">
             🥧 Cut My Slice
@@ -492,8 +478,6 @@
       e.preventDefault();
       
       const email = document.getElementById('email').value;
-      const primeInput = document.getElementById('prime').value;
-      const prime = primeInput ? parseInt(primeInput) : null;
       const button = document.getElementById('checkButton');
       
       button.disabled = true;
@@ -501,15 +485,10 @@
       
       try {
         // Check price
-        const requestBody = { email };
-        if (prime) {
-          requestBody.prime = prime;
-        }
-        
         const checkRes = await fetch(`${API_BASE}/check-price`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody)
+          body: JSON.stringify({ email })
         });
         
         const checkData = await checkRes.json();
@@ -519,7 +498,6 @@
           window.currentEmail = email;
           window.currentPrime = checkData.prime;
           window.currentPrice = checkData.price;
-          window.specificPrimeRequested = prime;
           
           // Display price
           document.getElementById('primeNumber').textContent = checkData.prime.toLocaleString();
@@ -536,12 +514,7 @@
               `<div style="font-size: 0.75rem; color: var(--dogecoin); margin-top: 0.25rem;">${checkData.dogeAmount} DOGE</div>`;
           }
         } else {
-          // Check if this is a "already owns prime" case vs other errors
-          if (checkData.message && checkData.message.includes('already owns')) {
-            alert(`This email already has a slice! Prime ${checkData.prime}`);
-          } else {
-            alert(checkData.message || 'Unable to check availability. Please try again.');
-          }
+          alert(checkData.message || 'This email already has a slice!');
         }
       } catch (error) {
         console.error('Error:', error);
@@ -579,10 +552,7 @@
         const response = await fetch(`${API_BASE}/create-payment/bitcoin`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            email: window.currentEmail,
-            prime: window.specificPrimeRequested || window.currentPrime
-          })
+          body: JSON.stringify({ email: window.currentEmail })
         });
         
         const data = await response.json();
@@ -598,8 +568,8 @@
               
               <div style="background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                 <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Send exactly:</p>
-                <p style="font-size: 1.25rem; font-weight: 600; color: var(--bitcoin);">${data.amountBTC} BTC</p>
-                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">($${data.amountUSD || data.prime})</p>
+                <p style="font-size: 1.25rem; font-weight: 600; color: var(--bitcoin);">${data.btcAmount} BTC</p>
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">($${data.usdAmount})</p>
               </div>
               
               <div style="background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 8px; word-break: break-all; font-family: monospace; font-size: 0.875rem;">
@@ -634,16 +604,13 @@
         const response = await fetch(`${API_BASE}/create-payment/dogecoin`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            email: window.currentEmail,
-            prime: window.specificPrimeRequested || window.currentPrime
-          })
+          body: JSON.stringify({ email: window.currentEmail })
         });
         
         const data = await response.json();
         
         if (data.success) {
-          const isMeme = data.amountDOGE && (data.amountDOGE.toString().includes('69') || data.amountDOGE.toString().includes('420'));
+          const isMeme = data.dogeAmount.includes('69') || data.dogeAmount.includes('420');
           
           document.getElementById('paymentDetails').innerHTML = `
             <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem;">
@@ -656,10 +623,10 @@
               <div style="background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                 <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Send exactly:</p>
                 <p style="font-size: 1.25rem; font-weight: 600; color: var(--dogecoin);">
-                  ${data.amountDOGE} DOGE
+                  ${data.dogeAmount} DOGE
                   ${isMeme ? ' 🚀' : ''}
                 </p>
-                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">($${data.amountUSD || data.prime})</p>
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">($${data.usdAmount})</p>
                 ${isMeme ? '<p style="font-size: 0.875rem; color: var(--dogecoin); margin-top: 0.5rem;">Nice meme number! 🐕</p>' : ''}
               </div>
               

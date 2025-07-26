@@ -1,0 +1,35 @@
+app = "theqpai"
+primary_region = "lhr"
+kill_signal = "SIGINT"
+kill_timeout = 5
+
+[build]
+  [build.args]
+    NODE_VERSION = "18"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "8080"
+  ENABLE_STRIPE = "false"
+  ENABLE_BITCOIN = "true"
+  ENABLE_DOGECOIN = "true"
+
+[experimental]
+  auto_rollback = true
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+  
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "10s"
+    grace_period = "5s"
+    method = "GET"
+    path = "/api/health"
+
+[processes]
+  app = "node src/server.js"

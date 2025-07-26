@@ -51,9 +51,80 @@ router.get('/db-test', asyncHandler(async (req, res) => {
   });
 }));
 
+// Check if a specific prime is available
+router.post('/check-prime', checkPriceLimiter, asyncHandler(async (req, res) => {
+  const { prime } = req.body;
+  
+  if (!prime || !Number.isInteger(prime) || prime < 2) {
+    throw new AppError('Invalid prime number', 400);
+  }
+  
+  // Check if it's actually a prime number
+  const isPrime = (n) => {
+    if (n <= 1) return false;
+    if (n <= 3) return true;
+    if (n % 2 === 0 || n % 3 === 0) return false;
+    for (let i = 5; i * i <= n; i += 6) {
+      if (n % i === 0 || n % (i + 2) === 0) return false;
+    }
+    return true;
+  };
+  
+  if (!isPrime(prime)) {
+    return res.json({
+      success: false,
+      message: `${prime} is not a prime number`
+    });
+  }
+  
+  // Check if already claimed
+  const claimed = await db.query(
+    'SELECT email, payment_status FROM prime_claims WHERE prime_number = $1',
+    [prime]
+  );
+  
+  if (claimed.rows.length > 0) {
+    const claim = claimed.rows[0];
+    return res.json({
+      success: false,
+      available: false,
+      message: claim.payment_status === 'paid' 
+        ? `Prime ${prime} is already owned`
+        : `Prime ${prime} has a pending payment`,
+      status: claim.payment_status
+    });
+  }
+  
+  // Check if reserved
+  const reserved = await db.query(
+    'SELECT reserved_for, claimed FROM prime_reservations WHERE prime_number = $1',
+    [prime]
+  );
+  
+  if (reserved.rows.length > 0 && !reserved.rows[0].claimed) {
+    return res.json({
+      success: false,
+      available: false,
+      message: `Prime ${prime} is reserved for ${reserved.rows[0].reserved_for}`,
+      reserved: true
+    });
+  }
+  
+  // Prime is available!
+  const price = getPrice(prime);
+  
+  res.json({
+    success: true,
+    available: true,
+    prime: prime,
+    price: price,
+    message: `Prime ${prime} is available for $${price}`
+  });
+}));
+
 // Check price for an email
 router.post('/check-price', checkPriceLimiter, asyncHandler(async (req, res) => {
-  const { email } = req.body;
+  const { email, prime } = req.body;
   
   // Validate email
   if (!email || !emailRegex.test(email)) {
@@ -84,29 +155,75 @@ router.post('/check-price', checkPriceLimiter, asyncHandler(async (req, res) => 
     });
   }
   
-  // Check for Mars reservation (prime 421)
-  if (email.toLowerCase() === 'elon@spacex.com' || 
-      email.toLowerCase() === 'elon@tesla.com' || 
-      email.toLowerCase() === 'elon@x.com') {
-    // Elon gets prime 421
-    const marsReserved = await db.query(
-      'SELECT claimed FROM prime_reservations WHERE prime_number = 421'
-    );
+  // If user specified a prime, use that. Otherwise get next available
+  let selectedPrime;
+  let price;
+  
+  if (prime) {
+    // User wants a specific prime
+    if (!Number.isInteger(prime) || prime < 2) {
+      throw new AppError('Invalid prime number', 400);
+    }
     
-    if (marsReserved.rows.length > 0 && !marsReserved.rows[0].claimed) {
+    // Check if it's actually prime
+    const isPrime = (n) => {
+      if (n <= 1) return false;
+      if (n <= 3) return true;
+      if (n % 2 === 0 || n % 3 === 0) return false;
+      for (let i = 5; i * i <= n; i += 6) {
+        if (n % i === 0 || n % (i + 2) === 0) return false;
+      }
+      return true;
+    };
+    
+    if (!isPrime(prime)) {
       return res.json({
-        success: true,
-        prime: 421,
-        price: 421,
-        special: true,
-        message: 'Welcome Elon! Prime 421 awaits you! 🚀'
+        success: false,
+        message: `${prime} is not a prime number`
       });
     }
+    
+    // Check if available
+    const claimCheck = await db.query(
+      'SELECT payment_status FROM prime_claims WHERE prime_number = $1',
+      [prime]
+    );
+    
+    if (claimCheck.rows.length > 0) {
+      return res.json({
+        success: false,
+        message: claimCheck.rows[0].payment_status === 'paid'
+          ? `Prime ${prime} is already owned`
+          : `Prime ${prime} has a pending payment`
+      });
+    }
+    
+    // Check if reserved by someone else
+    const reservedCheck = await db.query(
+      `SELECT reserved_for, expires_at, expires_condition
+       FROM prime_reservations 
+       WHERE prime_number = $1 
+       AND claimed = false 
+       AND (expires_at IS NULL OR expires_at > NOW())`,
+      [prime]
+    );
+    
+    if (reservedCheck.rows.length > 0 && reservedCheck.rows[0].reserved_for !== normalizedEmail) {
+      const reservation = reservedCheck.rows[0];
+      const message = `Prime ${prime} is reserved until ${new Date(reservation.expires_at).toLocaleString()}`;
+      return res.json({
+        success: false,
+        message: message
+      });
+    }
+    
+    selectedPrime = prime;
+    price = getPrice(prime);
+  } else {
+    // Get next available prime
+    selectedPrime = await getNextPrime();
+    price = getPrice(selectedPrime);
   }
-  
-  // Get next available prime
-  const nextPrime = await getNextPrime();
-  const price = getPrice(nextPrime);
   
   // Get crypto prices
   let btcPrice = null;
@@ -130,14 +247,34 @@ router.post('/check-price', checkPriceLimiter, asyncHandler(async (req, res) => 
     logger.warn('Failed to get DOGE price:', err);
   }
   
+  // Create a temporary reservation for 1 hour if this is a specific prime request
+  if (prime && selectedPrime) {
+    await db.query(
+      `INSERT INTO prime_reservations 
+       (prime_number, reserved_for, reason, expires_at, created_at)
+       VALUES ($1, $2, 'Temporary reservation', NOW() + INTERVAL '1 hour', NOW())
+       ON CONFLICT (prime_number) 
+       DO UPDATE SET 
+         reserved_for = $2,
+         created_at = NOW(),
+         expires_at = NOW() + INTERVAL '1 hour'
+       WHERE prime_reservations.expires_at IS NULL OR prime_reservations.expires_at < NOW()`,
+      [selectedPrime, normalizedEmail]
+    );
+    
+    logger.info(`Created temporary reservation for prime ${selectedPrime} for ${normalizedEmail}`);
+  }
+  
   res.json({
     success: true,
-    prime: nextPrime,
+    prime: selectedPrime,
     price: price,
     btcPrice: btcPrice,
     btcAmount: btcAmount,
     dogePrice: dogePrice,
-    dogeAmount: dogeAmount
+    dogeAmount: dogeAmount,
+    isSpecificRequest: !!prime,
+    reservedUntil: prime ? new Date(Date.now() + 3600000).toISOString() : null
   });
 }));
 
@@ -152,7 +289,7 @@ router.post('/create-payment/stripe', (req, res) => {
 
 // Create Bitcoin payment
 router.post('/create-payment/bitcoin', paymentLimiter, asyncHandler(async (req, res) => {
-  const { email } = req.body;
+  const { email, prime } = req.body;
   
   // Validate email
   if (!email || !emailRegex.test(email)) {
@@ -162,50 +299,106 @@ router.post('/create-payment/bitcoin', paymentLimiter, asyncHandler(async (req, 
   const normalizedEmail = email.toLowerCase().trim();
   
   try {
-    // Get next prime
-    const nextPrime = await getNextPrime();
+    // Get prime number - either specified or next available
+    let selectedPrime;
     
-    // Check if already claimed
-    const existing = await db.query(
+    if (prime) {
+      // Validate specific prime request
+      if (!Number.isInteger(prime) || prime < 2) {
+        throw new AppError('Invalid prime number', 400);
+      }
+      
+      // Verify it's actually prime
+      const isPrime = (n) => {
+        if (n <= 1) return false;
+        if (n <= 3) return true;
+        if (n % 2 === 0 || n % 3 === 0) return false;
+        for (let i = 5; i * i <= n; i += 6) {
+          if (n % i === 0 || n % (i + 2) === 0) return false;
+        }
+        return true;
+      };
+      
+      if (!isPrime(prime)) {
+        throw new AppError(`${prime} is not a prime number`, 400);
+      }
+      
+      selectedPrime = prime;
+    } else {
+      selectedPrime = await getNextPrime();
+    }
+    
+    // Check if already claimed by anyone
+    const claimedCheck = await db.query(
+      'SELECT email, payment_status FROM prime_claims WHERE prime_number = $1',
+      [selectedPrime]
+    );
+    
+    if (claimedCheck.rows.length > 0) {
+      return res.json({
+        success: false,
+        message: claimedCheck.rows[0].payment_status === 'paid' 
+          ? `Prime ${selectedPrime} is already owned` 
+          : `Prime ${selectedPrime} has a pending payment`,
+        status: claimedCheck.rows[0].payment_status
+      });
+    }
+    
+    // Check if this email already has a prime
+    const emailCheck = await db.query(
       'SELECT prime_number, payment_status FROM prime_claims WHERE email = $1',
       [normalizedEmail]
     );
     
-    if (existing.rows.length > 0) {
-      // Email already has a prime (paid or pending)
+    if (emailCheck.rows.length > 0 && emailCheck.rows[0].payment_status === 'paid') {
       return res.json({
         success: false,
-        message: existing.rows[0].payment_status === 'paid' 
-          ? 'This email already owns a prime' 
-          : 'This email already has a pending payment',
-        prime: existing.rows[0].prime_number,
-        status: existing.rows[0].payment_status
+        message: 'This email already owns a prime',
+        prime: emailCheck.rows[0].prime_number
       });
     }
     
-    // Email doesn't have any prime yet, create new claim
+    // Check if reserved by someone else
+    const reservedCheck = await db.query(
+      `SELECT reserved_for, expires_at
+       FROM prime_reservations 
+       WHERE prime_number = $1 
+       AND claimed = false 
+       AND (expires_at IS NULL OR expires_at > NOW())`,
+      [selectedPrime]
+    );
+    
+    if (reservedCheck.rows.length > 0 && reservedCheck.rows[0].reserved_for !== normalizedEmail) {
+      const reservation = reservedCheck.rows[0];
+      return res.json({
+        success: false,
+        message: `Prime ${selectedPrime} is reserved until ${new Date(reservation.expires_at).toLocaleString()}`
+      });
+    }
+    
+    // Create new claim
     await db.query(
       `INSERT INTO prime_claims 
        (prime_number, email, payment_status, payment_method, claimed_at)
        VALUES ($1, $2, 'pending', 'bitcoin', NOW())`,
-      [nextPrime, normalizedEmail]
+      [selectedPrime, normalizedEmail]
     );
     
-    // Then create Bitcoin payment (now the foreign key constraint will pass)
-    const bitcoinPayment = await createBitcoinPayment(nextPrime, normalizedEmail);
+    // Then create Bitcoin payment
+    const bitcoinPayment = await createBitcoinPayment(selectedPrime, normalizedEmail);
     
     // Update the claim with payment ID
     await db.query(
       `UPDATE prime_claims 
        SET bitcoin_payment_id = $1
        WHERE prime_number = $2`,
-      [bitcoinPayment.paymentId, nextPrime]
+      [bitcoinPayment.paymentId, selectedPrime]
     );
     
     res.json({
       success: true,
       ...bitcoinPayment,
-      prime: nextPrime,
+      prime: selectedPrime,
       paymentMethod: 'bitcoin'
     });
     

@@ -1,0 +1,168 @@
+# THE QP - Production Docker Compose Configuration
+# Optimized for production deployment
+
+version: '3.8'
+
+services:
+  # Main application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: theqp:latest
+    container_name: theqp-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      # Use environment variables or Docker secrets
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - JWT_SECRET=${JWT_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - BCRYPT_ROUNDS=12
+      # AWS
+      - AWS_REGION=${AWS_REGION:-eu-west-2}
+      - SES_FROM_EMAIL=${SES_FROM_EMAIL}
+      # Stripe
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      # Bitcoin
+      - BITCOIN_NETWORK=mainnet
+      - BITCOIN_XPUB=${BITCOIN_XPUB}
+      # Dogecoin
+      - DOGECOIN_XPUB=${DOGECOIN_XPUB}
+      # Domain
+      - DOMAIN=${DOMAIN:-https://theqp.ai}
+      - FRONTEND_URL=${FRONTEND_URL:-https://theqp.ai}
+    depends_on:
+      - redis
+    volumes:
+      - app-logs:/app/logs
+    networks:
+      - theqp-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Bitcoin payment monitor
+  bitcoin-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: theqp:latest
+    container_name: theqp-bitcoin-monitor
+    restart: always
+    command: ["node", "scripts/bitcoin-monitor.js"]
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - BITCOIN_NETWORK=mainnet
+      - BITCOIN_XPUB=${BITCOIN_XPUB}
+      - AWS_REGION=${AWS_REGION:-eu-west-2}
+      - SES_FROM_EMAIL=${SES_FROM_EMAIL}
+    volumes:
+      - monitor-logs:/app/logs
+    networks:
+      - theqp-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # Dogecoin payment monitor
+  dogecoin-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: theqp:latest
+    container_name: theqp-dogecoin-monitor
+    restart: always
+    command: ["node", "scripts/dogecoin-monitor.js"]
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - DOGECOIN_XPUB=${DOGECOIN_XPUB}
+      - AWS_REGION=${AWS_REGION:-eu-west-2}
+      - SES_FROM_EMAIL=${SES_FROM_EMAIL}
+    volumes:
+      - monitor-logs:/app/logs
+    networks:
+      - theqp-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # Redis for session storage (production config)
+  redis:
+    image: redis:7-alpine
+    container_name: theqp-redis
+    restart: always
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "127.0.0.1:6379:6379"  # Only bind to localhost
+    volumes:
+      - redis-data:/data
+    networks:
+      - theqp-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: theqp-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx-cache:/var/cache/nginx
+    depends_on:
+      - app
+    networks:
+      - theqp-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+networks:
+  theqp-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  redis-data:
+    driver: local
+  app-logs:
+    driver: local
+  monitor-logs:
+    driver: local
+  nginx-cache:
+    driver: local

@@ -8,7 +8,6 @@ const logger = require('./utils/logger');
 const apiRoutes = require('./routes/api');
 const webhookRoutes = require('./routes/webhook');
 const dogecoinRoutes = require('./routes/dogecoin');
-const marsRoutes = require('./routes/mars');
 const { errorHandler } = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const db = require('./database');
@@ -88,7 +87,6 @@ app.use(express.static(path.join(__dirname, '..', 'public'), {
 // API routes
 app.use('/api', apiLimiter, apiRoutes);
 app.use('/api', apiLimiter, dogecoinRoutes);
-app.use('/api/mars', apiLimiter, marsRoutes);
 
 // Health check endpoint (no rate limiting)
 app.get('/health', (req, res) => {
@@ -150,9 +148,6 @@ app.get('/lookup', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'lookup.html'));
 });
 
-app.get('/mars', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'mars.html'));
-});
 
 // 404 handler for API routes
 app.use('/api/*', (req, res) => {

@@ -1,0 +1,59 @@
+services:
+  - type: web
+    name: theqpai
+    runtime: node
+    region: oregon
+    plan: standard
+    buildCommand: npm ci --production
+    startCommand: node src/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ENABLE_STRIPE
+        value: false
+      - key: ENABLE_BITCOIN
+        value: true
+      - key: ENABLE_DOGECOIN
+        value: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: qpdb
+          property: connectionString
+    autoDeploy: true
+    healthCheckPath: /api/health
+
+  - type: worker
+    name: bitcoin-monitor
+    runtime: node
+    plan: starter
+    buildCommand: npm ci --production
+    startCommand: node scripts/bitcoin-monitor.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: qpdb
+          property: connectionString
+
+  - type: worker
+    name: dogecoin-monitor
+    runtime: node
+    plan: starter
+    buildCommand: npm ci --production
+    startCommand: node scripts/dogecoin-monitor.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: qpdb
+          property: connectionString
+
+databases:
+  - name: qpdb
+    databaseName: qpdb
+    user: qpuser
+    region: oregon
+    plan: standard
+    postgresMajorVersion: 15

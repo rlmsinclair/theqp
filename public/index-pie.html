@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="THE QPAI - Welcome to the cutiepie, cut your slice. Each prime is unique. Once it's gone, it's gone.">
+  <meta property="og:title" content="THE QPAI 🥧 - The Quantum Pie">
+  <meta property="og:description" content="Welcome to the cutiepie, cut your slice. Primes don't grow back.">
+  <meta property="og:image" content="https://theqp.ai/og-pie.png">
+  <meta property="og:url" content="https://theqp.ai">
+  <meta name="twitter:card" content="summary_large_image">
+  
+  <title>THE QPAI 🥧 - Welcome to the cutiepie, cut your slice</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&display=swap" rel="stylesheet">
+  
+  <script src="https://js.stripe.com/v3/"></script>
+  
+  <style>
+    :root {
+      --primary: #000;
+      --background: #000;
+      --surface: rgba(255, 255, 255, 0.03);
+      --surface-hover: rgba(255, 255, 255, 0.06);
+      --text: #fff;
+      --text-secondary: rgba(255, 255, 255, 0.6);
+      --success: #00ff88;
+      --error: #ff3366;
+      --bitcoin: #f7931a;
+      --stripe: #635bff;
+      --dogecoin: #c2a633;
+      --border: rgba(255, 255, 255, 0.1);
+      --pie-crust: #d4a574;
+      --pie-filling: #ff6b6b;
+      --slice-gradient: linear-gradient(135deg, #ff6b6b 0%, #ffd93d 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--background);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+    
+    /* Animated pie slices background */
+    .pie-background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    
+    .floating-slice {
+      position: absolute;
+      font-size: 30px;
+      opacity: 0.05;
+      animation: float-slice 20s infinite linear;
+    }
+    
+    @keyframes float-slice {
+      from {
+        transform: translateY(100vh) rotate(0deg);
+      }
+      to {
+        transform: translateY(-100px) rotate(360deg);
+      }
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    
+    h1 {
+      font-size: clamp(4rem, 12vw, 6rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      margin-bottom: 1rem;
+      background: var(--slice-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      position: relative;
+    }
+    
+    .logo-ai {
+      font-size: 0.7em;
+      opacity: 0.8;
+      font-weight: 400;
+    }
+    
+    .pie-emoji {
+      font-size: 0.9em;
+      display: inline-block;
+      animation: spin-pie 3s ease-in-out infinite;
+      margin-left: 0.2em;
+    }
+    
+    @keyframes spin-pie {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.1); }
+    }
+    
+    .tagline {
+      font-size: clamp(1.3rem, 3.5vw, 1.8rem);
+      color: var(--text);
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    
+    .sub-tagline {
+      display: block;
+      font-size: 0.7em;
+      color: var(--text-secondary);
+      font-weight: 300;
+      margin-top: 0.5rem;
+      font-style: italic;
+    }
+    
+    /* Pie visualization */
+    .pie-visual {
+      width: 200px;
+      height: 200px;
+      margin: 3rem auto;
+      position: relative;
+      animation: rotate-pie 30s linear infinite;
+    }
+    
+    @keyframes rotate-pie {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    .pie-svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 10px 30px rgba(255, 107, 107, 0.3));
+    }
+    
+    .pie-slice {
+      fill: var(--pie-filling);
+      stroke: var(--pie-crust);
+      stroke-width: 2;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .pie-slice:hover {
+      transform: scale(1.1);
+      filter: brightness(1.2);
+    }
+    
+    .pie-slice.claimed {
+      fill: #333;
+      cursor: not-allowed;
+    }
+    
+    .slice-number {
+      position: absolute;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      pointer-events: none;
+    }
+    
+    /* Form section */
+    .claim-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 2rem;
+      margin: 2rem 0;
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .claim-section::before {
+      content: "🥧";
+      position: absolute;
+      right: -20px;
+      top: -20px;
+      font-size: 100px;
+      opacity: 0.03;
+      transform: rotate(-15deg);
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    input[type="email"] {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 1.125rem;
+      font-family: inherit;
+      transition: all 0.3s ease;
+    }
+    
+    input[type="email"]:focus {
+      outline: none;
+      border-color: var(--pie-filling);
+      background: rgba(255, 255, 255, 0.08);
+    }
+    
+    button {
+      width: 100%;
+      padding: 1.25rem 2rem;
+      background: var(--slice-gradient);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.125rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    button::before {
+      content: "✂️";
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.5em;
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+    
+    button:hover::before {
+      opacity: 1;
+      left: 30px;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 30px rgba(255, 107, 107, 0.3);
+      padding-left: 3rem;
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* Price display */
+    .price-display {
+      text-align: center;
+      margin: 2rem 0;
+      padding: 2rem;
+      background: var(--surface);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+    
+    .your-slice {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.5rem;
+    }
+    
+    .prime-number {
+      font-size: 3rem;
+      font-weight: 700;
+      background: var(--slice-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+    
+    .prime-price {
+      font-size: 1.5rem;
+      color: var(--text);
+      font-weight: 300;
+    }
+    
+    /* Payment methods */
+    .payment-methods {
+      display: flex;
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    
+    .payment-method {
+      flex: 1;
+      padding: 1rem;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+    
+    .payment-method:hover {
+      background: var(--surface-hover);
+      border-color: var(--pie-filling);
+      transform: translateY(-2px);
+    }
+    
+    .payment-method.selected {
+      background: var(--surface-hover);
+      border-color: var(--pie-filling);
+    }
+    
+    .payment-method-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin: 3rem 0;
+    }
+    
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-card::after {
+      content: "🍰";
+      position: absolute;
+      right: -10px;
+      bottom: -10px;
+      font-size: 40px;
+      opacity: 0.05;
+      transform: rotate(15deg);
+    }
+    
+    .stat-card:hover {
+      background: var(--surface-hover);
+      transform: translateY(-4px);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.5rem;
+      background: var(--slice-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 500;
+    }
+    
+    /* Footer */
+    .footer {
+      text-align: center;
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+    
+    .footer p {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      line-height: 1.8;
+      font-weight: 300;
+    }
+    
+    /* Responsive */
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 3rem;
+      }
+      
+      .tagline {
+        font-size: 1.2rem;
+      }
+      
+      .payment-methods {
+        flex-direction: column;
+      }
+      
+      .pie-visual {
+        width: 150px;
+        height: 150px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Animated pie background -->
+  <div class="pie-background" id="pieBackground"></div>
+  
+  <div class="container">
+    <header>
+      <h1>THE QP<span class="logo-ai">AI</span> <span class="pie-emoji">🥧</span></h1>
+      <p class="tagline">
+        Welcome to the cutiepie, cut your slice
+        <span class="sub-tagline">Once it's gone, it's gone. Primes don't grow back.</span>
+      </p>
+    </header>
+    
+    <!-- Pie visualization -->
+    <div class="pie-visual">
+      <svg class="pie-svg" viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="90" fill="#d4a574" opacity="0.3"/>
+        <g id="pieSlices"></g>
+      </svg>
+    </div>
+    
+    <main>
+      <!-- Claim section -->
+      <section class="claim-section">
+        <form id="checkForm">
+          <div class="form-group">
+            <label for="email">Your Email (Your Identity)</label>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              placeholder="you@example.com" 
+              required
+              autocomplete="email"
+            >
+          </div>
+          <button type="submit" id="checkButton">
+            🥧 Cut My Slice
+          </button>
+        </form>
+      </section>
+      
+      <!-- Price display (hidden initially) -->
+      <div class="price-display" id="priceDisplay" style="display: none;">
+        <div class="your-slice">Your Slice</div>
+        <div class="prime-number" id="primeNumber">...</div>
+        <div class="prime-price">$<span id="primePrice">...</span></div>
+      </div>
+      
+      <!-- Payment methods (hidden initially) -->
+      <div class="payment-methods" id="paymentMethods" style="display: none;">
+        <div class="payment-method" onclick="selectPayment('stripe')">
+          <div class="payment-method-icon">💳</div>
+          <div>Credit Card</div>
+        </div>
+        <div class="payment-method" onclick="selectPayment('bitcoin')">
+          <div class="payment-method-icon">₿</div>
+          <div>Bitcoin</div>
+        </div>
+        <div class="payment-method" onclick="selectPayment('dogecoin')">
+          <div class="payment-method-icon">🐕</div>
+          <div>Dogecoin</div>
+        </div>
+      </div>
+      
+      <!-- Payment forms (hidden initially) -->
+      <div id="paymentForms" style="display: none;">
+        <!-- Payment content will be inserted here -->
+      </div>
+      
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-number" id="slicesCut">...</span>
+          <span class="stat-label">Slices Cut</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="slicesLeft">∞</span>
+          <span class="stat-label">Slices Left</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="nextSlice">...</span>
+          <span class="stat-label">Next Slice</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="pieSize">∞</span>
+          <span class="stat-label">Pie Size</span>
+        </div>
+      </div>
+    </main>
+    
+    <footer class="footer">
+      <p>
+        Every slice of the quantum pie is unique.<br>
+        Your prime = Your eternal identity.<br>
+        <strong style="color: var(--pie-filling);">🥧 The pie is infinite, but each slice exists only once.</strong>
+      </p>
+    </footer>
+  </div>
+  
+  <script>
+    const API_BASE = '/api';
+    const stripe = Stripe('pk_test_YOUR_PUBLISHABLE_KEY'); // Will be replaced in production
+    
+    // Create floating pie slices background
+    function createPieBackground() {
+      const container = document.getElementById('pieBackground');
+      const sliceEmojis = ['🍰', '🥧', '🍕', '🔺'];
+      
+      for (let i = 0; i < 20; i++) {
+        const slice = document.createElement('div');
+        slice.className = 'floating-slice';
+        slice.textContent = sliceEmojis[Math.floor(Math.random() * sliceEmojis.length)];
+        slice.style.left = Math.random() * 100 + '%';
+        slice.style.animationDelay = Math.random() * 20 + 's';
+        slice.style.animationDuration = (15 + Math.random() * 10) + 's';
+        container.appendChild(slice);
+      }
+    }
+    
+    // Create pie visualization
+    function createPieVisualization() {
+      const container = document.getElementById('pieSlices');
+      const primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
+      const angleStep = 360 / primes.length;
+      
+      primes.forEach((prime, index) => {
+        const startAngle = index * angleStep;
+        const endAngle = (index + 1) * angleStep;
+        
+        const x1 = 100 + 80 * Math.cos((startAngle * Math.PI) / 180);
+        const y1 = 100 + 80 * Math.sin((startAngle * Math.PI) / 180);
+        const x2 = 100 + 80 * Math.cos((endAngle * Math.PI) / 180);
+        const y2 = 100 + 80 * Math.sin((endAngle * Math.PI) / 180);
+        
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M 100 100 L ${x1} ${y1} A 80 80 0 0 1 ${x2} ${y2} Z`);
+        path.setAttribute('class', 'pie-slice');
+        path.setAttribute('data-prime', prime);
+        
+        // Random claimed slices for demo
+        if (Math.random() > 0.7) {
+          path.classList.add('claimed');
+        }
+        
+        container.appendChild(path);
+      });
+    }
+    
+    // Format numbers
+    function formatNumber(num) {
+      return new Intl.NumberFormat().format(num);
+    }
+    
+    // Load stats
+    async function loadStats() {
+      try {
+        const response = await fetch(`${API_BASE}/stats`);
+        const data = await response.json();
+        
+        if (data.success) {
+          document.getElementById('slicesCut').textContent = formatNumber(data.data.paid);
+          document.getElementById('nextSlice').textContent = formatNumber(data.data.nextPrime);
+        }
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    }
+    
+    // Handle form submission
+    document.getElementById('checkForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const button = document.getElementById('checkButton');
+      
+      button.disabled = true;
+      button.textContent = '🔪 Cutting your slice...';
+      
+      try {
+        const response = await fetch(`${API_BASE}/check-price`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Show price
+          document.getElementById('primeNumber').textContent = `Prime #${formatNumber(data.prime)}`;
+          document.getElementById('primePrice').textContent = formatNumber(data.price);
+          document.getElementById('priceDisplay').style.display = 'block';
+          document.getElementById('paymentMethods').style.display = 'flex';
+          
+          // Store for payment
+          window.currentPrime = data.prime;
+          window.currentPrice = data.price;
+          window.currentEmail = email;
+          
+          // Special message for prime 421
+          if (data.prime === 421 && data.special) {
+            alert(data.message);
+          }
+        } else {
+          alert(data.message || 'This email already has a slice!');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to cut your slice. Please try again.');
+      } finally {
+        button.disabled = false;
+        button.textContent = '🥧 Cut My Slice';
+      }
+    });
+    
+    // Payment method selection
+    function selectPayment(method) {
+      document.querySelectorAll('.payment-method').forEach(el => {
+        el.classList.remove('selected');
+      });
+      
+      event.currentTarget.classList.add('selected');
+      
+      // Show payment form based on method
+      const formsContainer = document.getElementById('paymentForms');
+      formsContainer.style.display = 'block';
+      
+      if (method === 'stripe') {
+        formsContainer.innerHTML = `
+          <div class="claim-section">
+            <h3>Pay with Credit Card</h3>
+            <form id="stripeForm">
+              <div id="card-element" style="margin: 1rem 0;"></div>
+              <div id="card-errors" role="alert" style="color: var(--error); margin: 0.5rem 0;"></div>
+              <button type="submit">✂️ Cut & Claim Forever</button>
+            </form>
+          </div>
+        `;
+        
+        // Initialize Stripe
+        const elements = stripe.elements();
+        const cardElement = elements.create('card', {
+          style: {
+            base: {
+              color: '#fff',
+              fontSize: '16px',
+              '::placeholder': { color: '#999' }
+            }
+          }
+        });
+        cardElement.mount('#card-element');
+        
+      } else if (method === 'bitcoin') {
+        formsContainer.innerHTML = `
+          <div class="claim-section">
+            <h3>Pay with Bitcoin</h3>
+            <p>Send exactly <strong id="btcAmount">...</strong> BTC to:</p>
+            <div id="qrCode" style="margin: 1rem 0;"></div>
+            <p style="word-break: break-all; font-family: monospace;">Loading...</p>
+          </div>
+        `;
+        createBitcoinPayment();
+        
+      } else if (method === 'dogecoin') {
+        formsContainer.innerHTML = `
+          <div class="claim-section">
+            <h3>Pay with Dogecoin</h3>
+            <p>Send exactly <strong id="dogeAmount">...</strong> DOGE to:</p>
+            <div id="dogeQrCode" style="margin: 1rem 0;"></div>
+            <p style="word-break: break-all; font-family: monospace;">Much address. Very wow!</p>
+          </div>
+        `;
+        createDogecoinPayment();
+      }
+    }
+    
+    // Create Bitcoin payment
+    async function createBitcoinPayment() {
+      try {
+        const response = await fetch(`${API_BASE}/create-payment/bitcoin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: window.currentEmail })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          document.getElementById('btcAmount').textContent = `${data.btcAmount} BTC`;
+          document.getElementById('qrCode').innerHTML = `<img src="${data.qrCode}" alt="Bitcoin QR">`;
+        }
+      } catch (error) {
+        console.error('Bitcoin payment error:', error);
+      }
+    }
+    
+    // Create Dogecoin payment
+    async function createDogecoinPayment() {
+      try {
+        const response = await fetch(`${API_BASE}/create-payment/dogecoin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: window.currentEmail })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          document.getElementById('dogeAmount').textContent = `${data.dogeAmount} DOGE`;
+          document.getElementById('dogeQrCode').innerHTML = `<img src="${data.qrCode}" alt="Doge QR">`;
+        }
+      } catch (error) {
+        console.error('Dogecoin payment error:', error);
+      }
+    }
+    
+    // Initialize
+    createPieBackground();
+    createPieVisualization();
+    loadStats();
+    
+    // Refresh stats every 30 seconds
+    setInterval(loadStats, 30000);
+  </script>
+</body>
+</html>

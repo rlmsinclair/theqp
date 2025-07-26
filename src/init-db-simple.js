@@ -119,17 +119,7 @@ async function initDatabase() {
       `);
       console.log('Reserved prime 2 for Robbie');
       
-      // Insert Mars reservation for Elon
-      await db.query(`
-        INSERT INTO prime_reservations (
-          prime_number, reserved_for, reason, special_price, 
-          display_message, expires_condition
-        ) VALUES (
-          421, 'Elon Musk', 'Reserved for when Mars is ready for humans', 
-          421, 'Reserved exclusively for Elon Musk 🚀', 'NEVER'
-        ) ON CONFLICT (prime_number) DO NOTHING
-      `);
-      console.log('Reserved prime 421 for Elon');
+      // No permanent reservations - all primes are available
       
     } else {
       console.log('Database tables already exist');
@@ -155,6 +145,7 @@ async function initDatabase() {
             special_price DECIMAL(10, 2),
             display_message TEXT,
             expires_condition VARCHAR(50) DEFAULT 'NEVER',
+            expires_at TIMESTAMP WITH TIME ZONE,
             claimed BOOLEAN DEFAULT FALSE,
             claimed_at TIMESTAMP WITH TIME ZONE,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -225,6 +216,7 @@ async function initDatabase() {
               special_price DECIMAL(10, 2),
               display_message TEXT,
               expires_condition VARCHAR(50) DEFAULT 'NEVER',
+            expires_at TIMESTAMP WITH TIME ZONE,
               claimed BOOLEAN DEFAULT FALSE,
               claimed_at TIMESTAMP WITH TIME ZONE,
               created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -232,17 +224,6 @@ async function initDatabase() {
           `);
           
           await db.query('CREATE INDEX idx_prime_reservations_claimed ON prime_reservations(claimed)');
-          
-          // Insert Mars reservation
-          await db.query(`
-            INSERT INTO prime_reservations (
-              prime_number, reserved_for, reason, special_price, 
-              display_message, expires_condition
-            ) VALUES (
-              421, 'Elon Musk', 'Reserved for when Mars is ready for humans', 
-              421, 'Reserved exclusively for Elon Musk 🚀', 'NEVER'
-            )
-          `);
           
           console.log('prime_reservations table migrated successfully');
         }
@@ -259,6 +240,8 @@ async function initDatabase() {
             special_price DECIMAL(10, 2),
             display_message TEXT,
             expires_condition VARCHAR(50) DEFAULT 'NEVER',
+            expires_at TIMESTAMP WITH TIME ZONE,
+            expires_at TIMESTAMP WITH TIME ZONE,
             claimed BOOLEAN DEFAULT FALSE,
             claimed_at TIMESTAMP WITH TIME ZONE,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -267,30 +250,9 @@ async function initDatabase() {
         
         await db.query('CREATE INDEX idx_prime_reservations_claimed ON prime_reservations(claimed)');
         
-        // Insert Mars reservation
-        await db.query(`
-          INSERT INTO prime_reservations (
-            prime_number, reserved_for, reason, special_price, 
-            display_message, expires_condition
-          ) VALUES (
-            421, 'Elon Musk', 'Reserved for when Mars is ready for humans', 
-            421, 'Reserved exclusively for Elon Musk 🚀', 'NEVER'
-          )
-        `);
-        
         console.log('prime_reservations table created');
       }
       
-      // Ensure Mars reservation exists
-      await db.query(`
-        INSERT INTO prime_reservations (
-          prime_number, reserved_for, reason, special_price, 
-          display_message, expires_condition
-        ) VALUES (
-          421, 'Elon Musk', 'Reserved for when Mars is ready for humans', 
-          421, 'Reserved exclusively for Elon Musk 🚀', 'NEVER'
-        ) ON CONFLICT (prime_number) DO NOTHING
-      `);
     }
     
     // Create mars_reservation_status view at the very end after all table operations
