@@ -5,6 +5,7 @@ const config = require('./config');
 const logger = require('./utils/logger');
 const db = require('./database');
 const { cleanupAbandonedReservations } = require('./prime');
+const { initDatabase } = require('./init-db');
 
 console.log('Modules loaded successfully');
 
@@ -54,6 +55,10 @@ const server = app.listen(PORT, HOST, async () => {
       process.exit(1);
     }
     console.log('Database connection successful');
+    
+    // Initialize database if needed
+    await initDatabase();
+    
   } catch (err) {
     console.error('Database connection error:', err.message);
     logger.error('Database connection error:', err);
