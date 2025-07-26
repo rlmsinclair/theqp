@@ -189,22 +189,66 @@ async function initDatabase() {
         console.log('mars_status_checks table created');
       }
       
-      // Check if prime_reservations has the correct columns
-      const columnsCheck = await db.query(`
-        SELECT column_name 
-        FROM information_schema.columns 
-        WHERE table_name = 'prime_reservations' 
-        AND table_schema = 'public'
+      // Check if prime_reservations table exists and has the correct columns
+      const reservationsTableCheck = await db.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'prime_reservations'
+        )
       `);
       
-      const columns = columnsCheck.rows.map(r => r.column_name);
-      console.log('Current prime_reservations columns:', columns);
-      
-      if (!columns.includes('reserved_for')) {
-        console.log('Migrating prime_reservations table structure...');
+      if (reservationsTableCheck.rows[0].exists) {
+        // Table exists, check if it has the correct columns
+        const columnsCheck = await db.query(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'prime_reservations' 
+          AND table_schema = 'public'
+        `);
         
-        // Drop the old table and recreate with new structure
-        await db.query('DROP TABLE IF EXISTS prime_reservations CASCADE');
+        const columns = columnsCheck.rows.map(r => r.column_name);
+        console.log('Current prime_reservations columns:', columns);
+        
+        if (!columns.includes('reserved_for')) {
+          console.log('Migrating prime_reservations table structure...');
+          
+          // Drop the old table and recreate with new structure
+          await db.query('DROP TABLE IF EXISTS prime_reservations CASCADE');
+          
+          await db.query(`
+            CREATE TABLE prime_reservations (
+              id SERIAL PRIMARY KEY,
+              prime_number INTEGER UNIQUE NOT NULL,
+              reserved_for VARCHAR(255) NOT NULL,
+              reason TEXT,
+              special_price DECIMAL(10, 2),
+              display_message TEXT,
+              expires_condition VARCHAR(50) DEFAULT 'NEVER',
+              claimed BOOLEAN DEFAULT FALSE,
+              claimed_at TIMESTAMP WITH TIME ZONE,
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+          `);
+          
+          await db.query('CREATE INDEX idx_prime_reservations_claimed ON prime_reservations(claimed)');
+          
+          // Insert Mars reservation
+          await db.query(`
+            INSERT INTO prime_reservations (
+              prime_number, reserved_for, reason, special_price, 
+              display_message, expires_condition
+            ) VALUES (
+              421, 'Elon Musk', 'Reserved for when Mars is ready for humans', 
+              421, 'Reserved exclusively for Elon Musk 🚀', 'NEVER'
+            )
+          `);
+          
+          console.log('prime_reservations table migrated successfully');
+        }
+      } else {
+        // Table doesn't exist, create it
+        console.log('Creating prime_reservations table...');
         
         await db.query(`
           CREATE TABLE prime_reservations (
@@ -234,7 +278,7 @@ async function initDatabase() {
           )
         `);
         
-        console.log('prime_reservations table migrated successfully');
+        console.log('prime_reservations table created');
       }
       
       // Ensure Mars reservation exists
