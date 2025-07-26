@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
-const { getNextPrime, getStats } = require('../prime');
+const { getNextPrime, getStats, getPrimeIndex } = require('../prime');
 const { getPrice } = require('../payments');
 const { createBitcoinPayment, getBTCPrice, convertUSDToBTC } = require('../bitcoin');
 const { createDogePayment, getDOGEPrice, convertUSDToDOGE } = require('../dogecoin');
@@ -117,11 +117,13 @@ router.post('/check-prime', checkPriceLimiter, asyncHandler(async (req, res) => 
   
   // Prime is available!
   const price = getPrice(prime);
+  const primeIndex = getPrimeIndex(prime);
   
   res.json({
     success: true,
     available: true,
     prime: prime,
+    primeIndex: primeIndex,
     price: price,
     message: `Prime ${prime} is available for $${price}`
   });
@@ -271,9 +273,13 @@ router.post('/check-price', checkPriceLimiter, asyncHandler(async (req, res) => 
     logger.info(`Created temporary reservation for prime ${selectedPrime} for ${normalizedEmail}`);
   }
   
+  // Calculate the prime index (e.g., 7 is the 4th prime)
+  const primeIndex = getPrimeIndex(selectedPrime);
+  
   res.json({
     success: true,
     prime: selectedPrime,
+    primeIndex: primeIndex,
     price: price,
     btcPrice: btcPrice,
     btcAmount: btcAmount,

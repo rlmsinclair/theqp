@@ -39,6 +39,20 @@ function isPrime(n) {
   return true;
 }
 
+// Get the index of a prime (e.g., 7 is the 4th prime, so returns 4)
+function getPrimeIndex(prime) {
+  if (!isPrime(prime)) return null;
+  
+  let count = 0;
+  for (let i = 2; i <= prime; i++) {
+    if (isPrime(i)) {
+      count++;
+      if (i === prime) return count;
+    }
+  }
+  return null;
+}
+
 // Modular exponentiation
 function modPow(base, exp, mod) {
   let result = 1;
@@ -238,5 +252,7 @@ module.exports = {
   reservePrime,
   confirmPayment,
   cleanupAbandonedReservations,
-  isPrime
+  isPrime,
+  getPrimeIndex,
+  getPrice: require('./payments').getPrice
 };

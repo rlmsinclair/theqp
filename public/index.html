@@ -392,10 +392,13 @@
         <div style="text-align: center; margin: 2rem 0;">
           <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">Your Slice</h2>
           <div style="font-size: 3rem; font-weight: 700; margin-bottom: 0.5rem;">
-            Prime #<span id="primeNumber">...</span>
+            Prime #<span id="primeIndex">...</span>
           </div>
-          <div style="font-size: 2rem; color: var(--text-secondary);">
+          <div style="font-size: 2rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
             $<span id="primePrice">...</span>
+          </div>
+          <div style="font-size: 1.5rem; color: var(--text-secondary);">
+            Value: <span id="primeNumber">...</span>
           </div>
         </div>
         
@@ -522,6 +525,7 @@
           window.specificPrimeRequested = prime;
           
           // Display price
+          document.getElementById('primeIndex').textContent = checkData.primeIndex ? checkData.primeIndex.toLocaleString() : '?';
           document.getElementById('primeNumber').textContent = checkData.prime.toLocaleString();
           document.getElementById('primePrice').textContent = checkData.price.toLocaleString();
           document.getElementById('priceSection').style.display = 'block';
