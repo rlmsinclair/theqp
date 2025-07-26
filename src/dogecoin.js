@@ -24,15 +24,30 @@ const DOGECOIN_NETWORK = {
   wif: 0x9e
 };
 
-// HD wallet for Dogecoin address generation
-// Using standard xpub format which generates valid Dogecoin addresses
-const hdNode = bip32Factory.fromBase58(config.dogecoin.xpub);
+// HD wallet for Dogecoin address generation (lazy initialization)
+let hdNode = null;
+
+function getHdNode() {
+  if (!hdNode && config.dogecoin.xpub) {
+    try {
+      hdNode = bip32Factory.fromBase58(config.dogecoin.xpub);
+    } catch (err) {
+      logger.error('Invalid Dogecoin xpub key:', err.message);
+      throw new Error('Dogecoin configuration error: Invalid xpub key');
+    }
+  }
+  return hdNode;
+}
 
 // Generate unique Dogecoin address for a prime
 function generateDogeAddress(prime) {
   try {
     // Use prime number as derivation index
-    const child = hdNode.derive(0).derive(prime);
+    const node = getHdNode();
+    if (!node) {
+      throw new Error('Dogecoin HD node not initialized');
+    }
+    const child = node.derive(0).derive(prime);
     const { address } = bitcoin.payments.p2pkh({ 
       pubkey: child.publicKey, 
       network: DOGECOIN_NETWORK 
