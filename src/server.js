@@ -5,7 +5,7 @@ const config = require('./config');
 const logger = require('./utils/logger');
 const db = require('./database');
 const { cleanupAbandonedReservations } = require('./prime');
-const { initDatabase } = require('./init-db');
+const { initDatabase } = require('./init-db-simple');
 
 console.log('Modules loaded successfully');
 
