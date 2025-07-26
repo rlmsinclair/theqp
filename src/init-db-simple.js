@@ -105,22 +105,6 @@ async function initDatabase() {
         )
       `);
       
-      // Create mars_reservation_status view
-      await db.query(`
-        CREATE OR REPLACE VIEW mars_reservation_status AS
-        SELECT 
-          pr.prime_number,
-          pr.reserved_for,
-          pr.created_at,
-          pr.claimed,
-          pr.claimed_at,
-          pc.email as claimed_by_email,
-          pc.payment_status
-        FROM prime_reservations pr
-        LEFT JOIN prime_claims pc ON pr.prime_number = pc.prime_number
-        WHERE pr.prime_number = 421
-      `);
-      
       console.log('Database tables created successfully');
       
       // Insert Robbie's prime 2
@@ -253,22 +237,6 @@ async function initDatabase() {
         console.log('prime_reservations table migrated successfully');
       }
       
-      // Create or replace mars_reservation_status view
-      await db.query(`
-        CREATE OR REPLACE VIEW mars_reservation_status AS
-        SELECT 
-          pr.prime_number,
-          pr.reserved_for,
-          pr.created_at,
-          pr.claimed,
-          pr.claimed_at,
-          pc.email as claimed_by_email,
-          pc.payment_status
-        FROM prime_reservations pr
-        LEFT JOIN prime_claims pc ON pr.prime_number = pc.prime_number
-        WHERE pr.prime_number = 421
-      `);
-      
       // Ensure Mars reservation exists
       await db.query(`
         INSERT INTO prime_reservations (
@@ -280,6 +248,23 @@ async function initDatabase() {
         ) ON CONFLICT (prime_number) DO NOTHING
       `);
     }
+    
+    // Create mars_reservation_status view at the very end after all table operations
+    console.log('Creating mars_reservation_status view...');
+    await db.query(`
+      CREATE OR REPLACE VIEW mars_reservation_status AS
+      SELECT 
+        pr.prime_number,
+        pr.reserved_for,
+        pr.created_at,
+        pr.claimed,
+        pr.claimed_at,
+        pc.email as claimed_by_email,
+        pc.payment_status
+      FROM prime_reservations pr
+      LEFT JOIN prime_claims pc ON pr.prime_number = pc.prime_number
+      WHERE pr.prime_number = 421
+    `);
     
     console.log('Database initialization completed successfully');
     
