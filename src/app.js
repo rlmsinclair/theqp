@@ -111,13 +111,17 @@ app.get('/health/detailed', async (req, res) => {
     const dbHealthy = await db.checkConnection();
     checks.database = dbHealthy ? 'ok' : 'error';
     
-    // Check Stripe connectivity
-    try {
-      const stripe = require('stripe')(config.stripe.secretKey);
-      await stripe.paymentIntents.list({ limit: 1 });
-      checks.stripe = 'ok';
-    } catch (err) {
-      checks.stripe = 'error';
+    // Check Stripe connectivity (only if enabled)
+    if (config.features.stripeEnabled) {
+      try {
+        const stripe = require('stripe')(config.stripe.secretKey);
+        await stripe.paymentIntents.list({ limit: 1 });
+        checks.stripe = 'ok';
+      } catch (err) {
+        checks.stripe = 'error';
+      }
+    } else {
+      checks.stripe = 'disabled';
     }
     
     const allHealthy = Object.values(checks).every(v => v === 'ok' || typeof v !== 'string');

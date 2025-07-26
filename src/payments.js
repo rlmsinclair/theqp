@@ -1,8 +1,12 @@
-const Stripe = require('stripe');
 const config = require('./config');
 const logger = require('./utils/logger');
 
-const stripe = new Stripe(config.stripe.secretKey);
+// Only initialize Stripe if enabled
+let stripe = null;
+if (config.features.stripeEnabled) {
+  const Stripe = require('stripe');
+  stripe = new Stripe(config.stripe.secretKey);
+}
 
 // Calculate price based on prime number
 function getPrice(prime) {
@@ -19,6 +23,10 @@ const PaymentMethod = {
 
 // Create payment intent
 async function createPaymentIntent(prime, email) {
+  if (!config.features.stripeEnabled) {
+    throw new Error('Stripe payments are not enabled');
+  }
+  
   try {
     const amount = getPrice(prime);
     
