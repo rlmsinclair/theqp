@@ -80,14 +80,46 @@ async function initDatabase() {
         CREATE TABLE IF NOT EXISTS prime_reservations (
           id SERIAL PRIMARY KEY,
           prime_number INTEGER UNIQUE NOT NULL,
-          email VARCHAR(255) NOT NULL,
-          reserved_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          expires_at TIMESTAMP WITH TIME ZONE NOT NULL
+          reserved_for VARCHAR(255) NOT NULL,
+          reason TEXT,
+          special_price DECIMAL(10, 2),
+          display_message TEXT,
+          expires_condition VARCHAR(50) DEFAULT 'NEVER',
+          claimed BOOLEAN DEFAULT FALSE,
+          claimed_at TIMESTAMP WITH TIME ZONE,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         )
       `);
       
       // Create index for prime_reservations
-      await db.query('CREATE INDEX IF NOT EXISTS idx_prime_reservations_expires ON prime_reservations(expires_at)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_prime_reservations_claimed ON prime_reservations(claimed)');
+      
+      // Create mars_status_checks table
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS mars_status_checks (
+          id SERIAL PRIMARY KEY,
+          ip_address VARCHAR(255),
+          user_agent TEXT,
+          referrer TEXT,
+          checked_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )
+      `);
+      
+      // Create mars_reservation_status view
+      await db.query(`
+        CREATE OR REPLACE VIEW mars_reservation_status AS
+        SELECT 
+          pr.prime_number,
+          pr.reserved_for,
+          pr.created_at,
+          pr.claimed,
+          pr.claimed_at,
+          pc.email as claimed_by_email,
+          pc.payment_status
+        FROM prime_reservations pr
+        LEFT JOIN prime_claims pc ON pr.prime_number = pc.prime_number
+        WHERE pr.prime_number = 421
+      `);
       
       console.log('Database tables created successfully');
       
@@ -102,6 +134,18 @@ async function initDatabase() {
         ) ON CONFLICT (prime_number) DO NOTHING
       `);
       console.log('Reserved prime 2 for Robbie');
+      
+      // Insert Mars reservation for Elon
+      await db.query(`
+        INSERT INTO prime_reservations (
+          prime_number, reserved_for, reason, special_price, 
+          display_message, expires_condition
+        ) VALUES (
+          421, 'Elon Musk', 'Reserved for when Mars is ready for humans', 
+          421, 'Reserved exclusively for Elon Musk 🚀', 'NEVER'
+        ) ON CONFLICT (prime_number) DO NOTHING
+      `);
+      console.log('Reserved prime 421 for Elon');
       
     } else {
       console.log('Database tables already exist');
@@ -122,15 +166,71 @@ async function initDatabase() {
           CREATE TABLE IF NOT EXISTS prime_reservations (
             id SERIAL PRIMARY KEY,
             prime_number INTEGER UNIQUE NOT NULL,
-            email VARCHAR(255) NOT NULL,
-            reserved_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            expires_at TIMESTAMP WITH TIME ZONE NOT NULL
+            reserved_for VARCHAR(255) NOT NULL,
+            reason TEXT,
+            special_price DECIMAL(10, 2),
+            display_message TEXT,
+            expires_condition VARCHAR(50) DEFAULT 'NEVER',
+            claimed BOOLEAN DEFAULT FALSE,
+            claimed_at TIMESTAMP WITH TIME ZONE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
           )
         `);
         
-        await db.query('CREATE INDEX IF NOT EXISTS idx_prime_reservations_expires ON prime_reservations(expires_at)');
+        await db.query('CREATE INDEX IF NOT EXISTS idx_prime_reservations_claimed ON prime_reservations(claimed)');
         console.log('prime_reservations table created');
       }
+      
+      // Check for mars_status_checks table
+      const marsChecksCheck = await db.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'mars_status_checks'
+        )
+      `);
+      
+      if (!marsChecksCheck.rows[0].exists) {
+        console.log('Creating missing mars_status_checks table...');
+        
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS mars_status_checks (
+            id SERIAL PRIMARY KEY,
+            ip_address VARCHAR(255),
+            user_agent TEXT,
+            referrer TEXT,
+            checked_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          )
+        `);
+        console.log('mars_status_checks table created');
+      }
+      
+      // Create or replace mars_reservation_status view
+      await db.query(`
+        CREATE OR REPLACE VIEW mars_reservation_status AS
+        SELECT 
+          pr.prime_number,
+          pr.reserved_for,
+          pr.created_at,
+          pr.claimed,
+          pr.claimed_at,
+          pc.email as claimed_by_email,
+          pc.payment_status
+        FROM prime_reservations pr
+        LEFT JOIN prime_claims pc ON pr.prime_number = pc.prime_number
+        WHERE pr.prime_number = 421
+      `);
+      
+      // Ensure Mars reservation exists
+      await db.query(`
+        INSERT INTO prime_reservations (
+          prime_number, reserved_for, reason, special_price, 
+          display_message, expires_condition
+        ) VALUES (
+          421, 'Elon Musk', 'Reserved for when Mars is ready for humans', 
+          421, 'Reserved exclusively for Elon Musk 🚀', 'NEVER'
+        ) ON CONFLICT (prime_number) DO NOTHING
+      `);
     }
     
     console.log('Database initialization completed successfully');
