@@ -16,14 +16,30 @@ const network = config.bitcoin.network === 'mainnet'
   ? bitcoin.networks.bitcoin 
   : bitcoin.networks.testnet;
 
-// HD wallet for address generation
-const hdNode = bip32Factory.fromBase58(config.bitcoin.xpub, network);
+// HD wallet for address generation (lazy initialization)
+let hdNode = null;
+
+function getHdNode() {
+  if (!hdNode && config.bitcoin.xpub) {
+    try {
+      hdNode = bip32Factory.fromBase58(config.bitcoin.xpub, network);
+    } catch (err) {
+      logger.error('Invalid Bitcoin xpub key:', err.message);
+      throw new Error('Bitcoin configuration error: Invalid xpub key');
+    }
+  }
+  return hdNode;
+}
 
 // Generate unique Bitcoin address for a prime
 function generatePaymentAddress(prime) {
   try {
     // Use prime number as derivation index
-    const child = hdNode.derive(0).derive(prime);
+    const node = getHdNode();
+    if (!node) {
+      throw new Error('Bitcoin HD node not initialized');
+    }
+    const child = node.derive(0).derive(prime);
     const { address } = bitcoin.payments.p2wpkh({ 
       pubkey: child.publicKey, 
       network 
