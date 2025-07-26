@@ -6,6 +6,8 @@ const logger = require('./utils/logger');
 const db = require('./database');
 const { cleanupAbandonedReservations } = require('./prime');
 const { initDatabase } = require('./init-db-simple');
+const { monitorBitcoinPayments } = require('./bitcoin');
+const { monitorDogePayments } = require('./dogecoin');
 
 console.log('Modules loaded successfully');
 
@@ -81,6 +83,23 @@ const server = app.listen(PORT, HOST, async () => {
       logger.error('Cleanup job failed:', err);
     }
   }, 300000); // Run every 5 minutes
+  
+  // Start payment monitoring
+  setInterval(async () => {
+    try {
+      await monitorBitcoinPayments();
+    } catch (err) {
+      logger.error('Bitcoin payment monitoring failed:', err);
+    }
+  }, 30000); // Check every 30 seconds
+  
+  setInterval(async () => {
+    try {
+      await monitorDogePayments();
+    } catch (err) {
+      logger.error('Dogecoin payment monitoring failed:', err);
+    }
+  }, 30000); // Check every 30 seconds
 });
 
 // Handle shutdown signals
