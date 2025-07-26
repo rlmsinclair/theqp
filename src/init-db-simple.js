@@ -107,18 +107,6 @@ async function initDatabase() {
       
       console.log('Database tables created successfully');
       
-      // Insert Robbie's prime 2
-      await db.query(`
-        INSERT INTO prime_claims (
-          prime_number, email, payment_status, 
-          payment_method, amount_paid, verified
-        ) VALUES (
-          2, 'robbie@theqp.ai', 'paid', 
-          'founder', 2, true
-        ) ON CONFLICT (prime_number) DO NOTHING
-      `);
-      console.log('Reserved prime 2 for Robbie');
-      
       // No permanent reservations - all primes are available
       
     } else {

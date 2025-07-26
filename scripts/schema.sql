@@ -289,28 +289,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Initial data: Reserve prime 2 for robbie@theqp.ai
-INSERT INTO prime_claims (
-    prime_number, 
-    email, 
-    verified,
-    verified_at,
-    payment_status,
-    payment_method,
-    payment_intent_id,
-    paid_at,
-    amount_paid
-) VALUES (
-    2, 
-    'robbie@theqp.ai', 
-    true,
-    CURRENT_TIMESTAMP,
-    'paid',
-    'bitcoin',
-    'pi_founder_prime2',
-    CURRENT_TIMESTAMP,
-    2
-) ON CONFLICT (prime_number) DO NOTHING;
 
 -- Grant permissions (adjust username as needed)
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO qpuser;
