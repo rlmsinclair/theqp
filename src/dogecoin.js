@@ -159,15 +159,23 @@ async function convertUSDToDOGE(usdAmount) {
 async function createDogePayment(prime, email) {
   try {
     const paymentId = uuidv4();
-    const address = generateDogeAddress(prime);
+    
+    let address;
+    try {
+      address = generateDogeAddress(prime);
+    } catch (addrErr) {
+      logger.error('Failed to generate Dogecoin address:', addrErr);
+      throw new Error('Failed to generate Dogecoin address');
+    }
+    
     const conversion = await convertUSDToDOGE(prime);
     const qrCode = await generateDogeQRCode(address, conversion.dogeAmount);
     
-    // Store payment request
+    // Store payment request (expires in 30 minutes)
     await db.query(
       `INSERT INTO dogecoin_payments 
-       (payment_id, prime_number, email, address, amount_doge, amount_usd, doge_price, status, is_meme_amount)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8)`,
+       (payment_id, prime_number, email, address, amount_doge, amount_usd, doge_price, status, is_meme_amount, expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, NOW() + INTERVAL '30 minutes')`,
       [paymentId, prime, email, address, conversion.dogeAmount, prime, conversion.dogePrice, conversion.isMemeNumber]
     );
     
