@@ -13,6 +13,11 @@ const logger = require('../utils/logger');
 // Email validation regex
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Test endpoint
+router.get('/test', (req, res) => {
+  res.json({ success: true, message: 'API is working!' });
+});
+
 // Check price for an email
 router.post('/check-price', checkPriceLimiter, asyncHandler(async (req, res) => {
   const { email } = req.body;

@@ -12,7 +12,10 @@ class AppError extends Error {
 const errorHandler = (err, req, res, next) => {
   let { statusCode = 500, message } = err;
   
-  // Log error
+  // Log error with console for debugging
+  console.error('API Error:', err.message);
+  if (err.stack) console.error('Stack:', err.stack);
+  
   logger.error({
     error: err,
     request: {
