@@ -18,6 +18,21 @@ router.get('/test', (req, res) => {
   res.json({ success: true, message: 'API is working!' });
 });
 
+// Database test endpoint
+router.get('/db-test', asyncHandler(async (req, res) => {
+  const tables = await db.query(`
+    SELECT table_name 
+    FROM information_schema.tables 
+    WHERE table_schema = 'public'
+    ORDER BY table_name
+  `);
+  
+  res.json({
+    success: true,
+    tables: tables.rows.map(r => r.table_name)
+  });
+}));
+
 // Check price for an email
 router.post('/check-price', checkPriceLimiter, asyncHandler(async (req, res) => {
   const { email } = req.body;
