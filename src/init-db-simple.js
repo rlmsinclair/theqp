@@ -75,6 +75,20 @@ async function initDatabase() {
         )
       `);
       
+      // Create prime_reservations table
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS prime_reservations (
+          id SERIAL PRIMARY KEY,
+          prime_number INTEGER UNIQUE NOT NULL,
+          email VARCHAR(255) NOT NULL,
+          reserved_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          expires_at TIMESTAMP WITH TIME ZONE NOT NULL
+        )
+      `);
+      
+      // Create index for prime_reservations
+      await db.query('CREATE INDEX IF NOT EXISTS idx_prime_reservations_expires ON prime_reservations(expires_at)');
+      
       console.log('Database tables created successfully');
       
       // Insert Robbie's prime 2
@@ -91,6 +105,32 @@ async function initDatabase() {
       
     } else {
       console.log('Database tables already exist');
+      
+      // Check for prime_reservations table specifically
+      const reservationsCheck = await db.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'prime_reservations'
+        )
+      `);
+      
+      if (!reservationsCheck.rows[0].exists) {
+        console.log('Creating missing prime_reservations table...');
+        
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS prime_reservations (
+            id SERIAL PRIMARY KEY,
+            prime_number INTEGER UNIQUE NOT NULL,
+            email VARCHAR(255) NOT NULL,
+            reserved_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            expires_at TIMESTAMP WITH TIME ZONE NOT NULL
+          )
+        `);
+        
+        await db.query('CREATE INDEX IF NOT EXISTS idx_prime_reservations_expires ON prime_reservations(expires_at)');
+        console.log('prime_reservations table created');
+      }
     }
     
     console.log('Database initialization completed successfully');
