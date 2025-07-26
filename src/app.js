@@ -7,6 +7,7 @@ const config = require('./config');
 const logger = require('./utils/logger');
 const apiRoutes = require('./routes/api');
 const webhookRoutes = require('./routes/webhook');
+const dogecoinRoutes = require('./routes/dogecoin');
 const { errorHandler } = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const db = require('./database');
@@ -85,6 +86,7 @@ app.use(express.static(path.join(__dirname, '..', 'public'), {
 
 // API routes
 app.use('/api', apiLimiter, apiRoutes);
+app.use('/api', apiLimiter, dogecoinRoutes);
 
 // Health check endpoint (no rate limiting)
 app.get('/health', (req, res) => {
