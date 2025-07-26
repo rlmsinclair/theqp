@@ -97,11 +97,16 @@ router.post('/check-prime', checkPriceLimiter, asyncHandler(async (req, res) => 
   
   // Check if reserved
   const reserved = await db.query(
-    'SELECT reserved_for, claimed FROM prime_reservations WHERE prime_number = $1',
+    `SELECT reserved_for, claimed, expires_at 
+     FROM prime_reservations 
+     WHERE prime_number = $1 
+     AND claimed = false 
+     AND expires_at IS NOT NULL 
+     AND expires_at > NOW()`,
     [prime]
   );
   
-  if (reserved.rows.length > 0 && !reserved.rows[0].claimed) {
+  if (reserved.rows.length > 0) {
     return res.json({
       success: false,
       available: false,
@@ -204,7 +209,8 @@ router.post('/check-price', checkPriceLimiter, asyncHandler(async (req, res) => 
        FROM prime_reservations 
        WHERE prime_number = $1 
        AND claimed = false 
-       AND (expires_at IS NULL OR expires_at > NOW())`,
+       AND expires_at IS NOT NULL 
+       AND expires_at > NOW()`,
       [prime]
     );
     
@@ -364,7 +370,8 @@ router.post('/create-payment/bitcoin', paymentLimiter, asyncHandler(async (req, 
        FROM prime_reservations 
        WHERE prime_number = $1 
        AND claimed = false 
-       AND (expires_at IS NULL OR expires_at > NOW())`,
+       AND expires_at IS NOT NULL 
+       AND expires_at > NOW()`,
       [selectedPrime]
     );
     

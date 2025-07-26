@@ -87,7 +87,8 @@ router.post('/create-payment/dogecoin', paymentLimiter, asyncHandler(async (req,
        FROM prime_reservations 
        WHERE prime_number = $1 
        AND claimed = false 
-       AND (expires_at IS NULL OR expires_at > NOW())`,
+       AND expires_at IS NOT NULL 
+       AND expires_at > NOW()`,
       [selectedPrime]
     );
     

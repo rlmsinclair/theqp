@@ -85,6 +85,7 @@ async function initDatabase() {
           special_price DECIMAL(10, 2),
           display_message TEXT,
           expires_condition VARCHAR(50) DEFAULT 'NEVER',
+          expires_at TIMESTAMP WITH TIME ZONE,
           claimed BOOLEAN DEFAULT FALSE,
           claimed_at TIMESTAMP WITH TIME ZONE,
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -204,7 +205,7 @@ async function initDatabase() {
               special_price DECIMAL(10, 2),
               display_message TEXT,
               expires_condition VARCHAR(50) DEFAULT 'NEVER',
-            expires_at TIMESTAMP WITH TIME ZONE,
+              expires_at TIMESTAMP WITH TIME ZONE,
               claimed BOOLEAN DEFAULT FALSE,
               claimed_at TIMESTAMP WITH TIME ZONE,
               created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -214,6 +215,14 @@ async function initDatabase() {
           await db.query('CREATE INDEX idx_prime_reservations_claimed ON prime_reservations(claimed)');
           
           console.log('prime_reservations table migrated successfully');
+        } else if (!columns.includes('expires_at')) {
+          // Add the missing expires_at column
+          console.log('Adding expires_at column to prime_reservations...');
+          await db.query(`
+            ALTER TABLE prime_reservations 
+            ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP WITH TIME ZONE
+          `);
+          console.log('expires_at column added successfully');
         }
       } else {
         // Table doesn't exist, create it
@@ -228,7 +237,6 @@ async function initDatabase() {
             special_price DECIMAL(10, 2),
             display_message TEXT,
             expires_condition VARCHAR(50) DEFAULT 'NEVER',
-            expires_at TIMESTAMP WITH TIME ZONE,
             expires_at TIMESTAMP WITH TIME ZONE,
             claimed BOOLEAN DEFAULT FALSE,
             claimed_at TIMESTAMP WITH TIME ZONE,
