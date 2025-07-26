@@ -1,8 +1,12 @@
+console.log('Starting THE QP server...');
+
 const app = require('./app');
 const config = require('./config');
 const logger = require('./utils/logger');
 const db = require('./database');
 const { cleanupAbandonedReservations } = require('./prime');
+
+console.log('Modules loaded successfully');
 
 // Graceful shutdown handler
 const gracefulShutdown = async (signal) => {
@@ -29,7 +33,10 @@ const gracefulShutdown = async (signal) => {
 const PORT = process.env.PORT || config.app.port;
 const HOST = '0.0.0.0'; // Railway requires 0.0.0.0
 
+console.log(`Attempting to start server on ${HOST}:${PORT}`);
+
 const server = app.listen(PORT, HOST, async () => {
+  console.log(`Server started successfully on port ${PORT}`);
   logger.info(`THE QP server started`, {
     env: config.app.env,
     host: HOST,
@@ -38,9 +45,18 @@ const server = app.listen(PORT, HOST, async () => {
   });
   
   // Check database connection
-  const dbHealthy = await db.checkConnection();
-  if (!dbHealthy) {
-    logger.error('Database connection failed, shutting down');
+  console.log('Checking database connection...');
+  try {
+    const dbHealthy = await db.checkConnection();
+    if (!dbHealthy) {
+      console.error('Database connection failed, shutting down');
+      logger.error('Database connection failed, shutting down');
+      process.exit(1);
+    }
+    console.log('Database connection successful');
+  } catch (err) {
+    console.error('Database connection error:', err.message);
+    logger.error('Database connection error:', err);
     process.exit(1);
   }
   
