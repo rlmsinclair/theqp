@@ -72,9 +72,9 @@ async function getNextPrime() {
     // Find next prime that isn't reserved
     while (true) {
       if (isPrime(Number(candidate))) {
-        // Check if this prime is reserved
+        // Check if this prime is reserved (and not expired)
         const reserved = await db.query(
-          'SELECT 1 FROM prime_reservations WHERE prime_number = $1 AND claimed = FALSE',
+          'SELECT 1 FROM prime_reservations WHERE prime_number = $1 AND expires_at > NOW()',
           [Number(candidate)]
         );
         
