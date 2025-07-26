@@ -25,6 +25,7 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://js.stripe.com"],
+      scriptSrcAttr: ["'unsafe-inline'"], // Allow inline event handlers
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: ["'self'", "https://api.stripe.com"],
